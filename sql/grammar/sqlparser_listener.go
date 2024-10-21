@@ -34,6 +34,15 @@ type SQLParserListener interface {
 	// EnterCreateDatabase is called when entering the createDatabase production.
 	EnterCreateDatabase(c *CreateDatabaseContext)
 
+	// EnterDbOptions is called when entering the dbOptions production.
+	EnterDbOptions(c *DbOptionsContext)
+
+	// EnterWithProps is called when entering the withProps production.
+	EnterWithProps(c *WithPropsContext)
+
+	// EnterRollupProps is called when entering the rollupProps production.
+	EnterRollupProps(c *RollupPropsContext)
+
 	// EnterEngineOption is called when entering the engineOption production.
 	EnterEngineOption(c *EngineOptionContext)
 
@@ -63,18 +72,6 @@ type SQLParserListener interface {
 
 	// EnterShowLimit is called when entering the showLimit production.
 	EnterShowLimit(c *ShowLimitContext)
-
-	// EnterShowMetadataTypes is called when entering the showMetadataTypes production.
-	EnterShowMetadataTypes(c *ShowMetadataTypesContext)
-
-	// EnterShowMetadatas is called when entering the showMetadatas production.
-	EnterShowMetadatas(c *ShowMetadatasContext)
-
-	// EnterShowState is called when entering the showState production.
-	EnterShowState(c *ShowStateContext)
-
-	// EnterShowDatabases is called when entering the showDatabases production.
-	EnterShowDatabases(c *ShowDatabasesContext)
 
 	// EnterShowMemoryDatabases is called when entering the showMemoryDatabases production.
 	EnterShowMemoryDatabases(c *ShowMemoryDatabasesContext)
@@ -319,6 +316,15 @@ type SQLParserListener interface {
 	// ExitCreateDatabase is called when exiting the createDatabase production.
 	ExitCreateDatabase(c *CreateDatabaseContext)
 
+	// ExitDbOptions is called when exiting the dbOptions production.
+	ExitDbOptions(c *DbOptionsContext)
+
+	// ExitWithProps is called when exiting the withProps production.
+	ExitWithProps(c *WithPropsContext)
+
+	// ExitRollupProps is called when exiting the rollupProps production.
+	ExitRollupProps(c *RollupPropsContext)
+
 	// ExitEngineOption is called when exiting the engineOption production.
 	ExitEngineOption(c *EngineOptionContext)
 
@@ -348,18 +354,6 @@ type SQLParserListener interface {
 
 	// ExitShowLimit is called when exiting the showLimit production.
 	ExitShowLimit(c *ShowLimitContext)
-
-	// ExitShowMetadataTypes is called when exiting the showMetadataTypes production.
-	ExitShowMetadataTypes(c *ShowMetadataTypesContext)
-
-	// ExitShowMetadatas is called when exiting the showMetadatas production.
-	ExitShowMetadatas(c *ShowMetadatasContext)
-
-	// ExitShowState is called when exiting the showState production.
-	ExitShowState(c *ShowStateContext)
-
-	// ExitShowDatabases is called when exiting the showDatabases production.
-	ExitShowDatabases(c *ShowDatabasesContext)
 
 	// ExitShowMemoryDatabases is called when exiting the showMemoryDatabases production.
 	ExitShowMemoryDatabases(c *ShowMemoryDatabasesContext)

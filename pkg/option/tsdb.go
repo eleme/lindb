@@ -81,8 +81,8 @@ type FlusherOption struct {
 
 // DatabaseOption represents a database option include shard ids and shard's option
 type DatabaseOption struct {
-	Behind string `toml:"behind" json:"behind,omitempty"`
-	Ahead  string `toml:"ahead" json:"ahead,omitempty"`
+	Behind string `toml:"behind" json:"behind,omitempty" mapstructure:"behind"`
+	Ahead  string `toml:"ahead" json:"ahead,omitempty" mapstructure:"ahead"`
 	// write interval(the number of second) => TTL
 	// rollup intervals(like seconds->minute->hour->day)
 	Intervals Intervals     `toml:"intervals" json:"intervals,omitempty"  validate:"required"`

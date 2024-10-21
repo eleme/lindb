@@ -12,8 +12,8 @@ type CreateDatabase struct {
 	BaseNode
 	Name          string
 	CreateOptions []CreateOption
-	Props         map[string]any
-	Rollup        []RollupOption
+	Props         []*Property
+	Rollup        []*RollupOption
 }
 
 func (n *CreateDatabase) Accept(context any, visitor Visitor) any {
@@ -31,5 +31,10 @@ func (n *CreateBroker) Accept(context any, visitor Visitor) any {
 }
 
 type RollupOption struct {
-	Options map[string]any
+	BaseNode
+	Props []*Property
+}
+
+func (n *RollupOption) Accept(context any, visitor Visitor) any {
+	return visitor.Visit(context, n)
 }

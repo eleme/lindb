@@ -36,10 +36,11 @@ explainOption       : TYPE value=(LOGICAL | DISTRIBUTED)                     #ex
 										;                   
 
 // ddl
-createDatabase      : CREATE DATABASE name=qualifiedName
-                       ( createDatabaseOptions (',' createDatabaseOptions)* )? 
-                       (WITH properties)?
-                       (ROLLUP '(' rollupOptions (',' rollupOptions)* ')')? 
+createDatabase      : CREATE DATABASE name=qualifiedName databaseOptions* ;
+
+databaseOptions     : createDatabaseOptions (',' createDatabaseOptions)*    #dbOptions
+                    | WITH properties                                       #withProps 
+                    | ROLLUP '(' rollupOptions (',' rollupOptions)* ')'     #rollupProps 
                     ;
 
 createDatabaseOptions : ENGINE (EQ)? value=(METRIC | LOG | TRACE)            #engineOption
@@ -58,10 +59,6 @@ showStatement       : SHOW MASTER                                            #sh
                     | SHOW BROKERS                                           #showBrokers
                     | SHOW REQUESTS                                          #showRequests
                     | SHOW LIMIT                                             #showLimit
-                    | SHOW METADATA TYPES                                    #showMetadataTypes
-                    | SHOW METADATAS                                         #showMetadatas
-                    | SHOW STATE                                             #showState
-                    | SHOW DATABASES                                         #showDatabases
                     | SHOW MEMORY_DATABASES                                  #showMemoryDatabases
                     | SHOW REPLICATIONS                                      #showReplications
                     | SHOW NAMESPACES                      

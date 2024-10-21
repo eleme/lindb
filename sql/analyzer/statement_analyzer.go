@@ -644,6 +644,7 @@ func (v *StatementVisitor) computeAndAssignOutputScope(node *tree.QuerySpecifica
 				fieldName = field.Value
 			}
 
+			// NOTE: field name is empty when expression/function call
 			outputFields = append(outputFields, &tree.Field{
 				Name:  fieldName,
 				Index: tree.FieldIndex(i),

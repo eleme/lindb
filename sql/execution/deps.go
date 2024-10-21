@@ -1,13 +1,13 @@
 package execution
 
 import (
+	"github.com/lindb/lindb/meta"
 	"github.com/lindb/lindb/models"
-	"github.com/lindb/lindb/pkg/state"
 	"github.com/lindb/lindb/sql/analyzer"
 )
 
 type Deps struct {
-	Repo        state.Repository
+	MetaMgr     meta.MetadataManager
 	CurrentNode *models.InternalNode
 	AnalyzerFct *analyzer.AnalyzerFactory
 }

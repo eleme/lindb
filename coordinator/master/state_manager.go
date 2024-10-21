@@ -56,6 +56,8 @@ type StateManager interface {
 	GetShardAssignments() []models.ShardAssignment
 	// GetStorageState returns current storage state.
 	GetStorageState() *models.StorageState
+
+	CreateDatabase(ctx context.Context, databaseCfg *models.Database) error
 }
 
 // stateManager implements StateManager.
@@ -580,6 +582,10 @@ func (m *stateManager) GetStorageState() *models.StorageState {
 	defer m.mutex.RUnlock()
 
 	return m.storage.GetState()
+}
+
+func (m *stateManager) CreateDatabase(ctx context.Context, database *models.Database) error {
+	return m.masterRepo.Put(ctx, constants.GetDatabaseConfigPath(database.Name), encoding.JSONMarshal(database))
 }
 
 // initializeShardState initializes the shard state based on shard assignment for storage cluster.

@@ -252,7 +252,7 @@ func (r *runtime) Run() error {
 	r.metadataMgr = meta.NewBrokerMetadataManager(r.repo, r.stateMgr, r.master)
 	execDeps := &execution.Deps{
 		AnalyzerFct: analyzer.NewAnalyzerFactory(spi.NewMetadataManager(r.metadataMgr)),
-		Repo:        r.repo,
+		MetaMgr:     r.metadataMgr,
 		CurrentNode: &models.InternalNode{
 			IP:   r.node.HostIP,
 			Port: r.node.GRPCPort,

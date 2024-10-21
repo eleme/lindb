@@ -43,6 +43,18 @@ func (v *BaseSQLParserVisitor) VisitCreateDatabase(ctx *CreateDatabaseContext) i
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseSQLParserVisitor) VisitDbOptions(ctx *DbOptionsContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseSQLParserVisitor) VisitWithProps(ctx *WithPropsContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseSQLParserVisitor) VisitRollupProps(ctx *RollupPropsContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseSQLParserVisitor) VisitEngineOption(ctx *EngineOptionContext) interface{} {
 	return v.VisitChildren(ctx)
 }
@@ -80,22 +92,6 @@ func (v *BaseSQLParserVisitor) VisitShowRequests(ctx *ShowRequestsContext) inter
 }
 
 func (v *BaseSQLParserVisitor) VisitShowLimit(ctx *ShowLimitContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
-func (v *BaseSQLParserVisitor) VisitShowMetadataTypes(ctx *ShowMetadataTypesContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
-func (v *BaseSQLParserVisitor) VisitShowMetadatas(ctx *ShowMetadatasContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
-func (v *BaseSQLParserVisitor) VisitShowState(ctx *ShowStateContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
-func (v *BaseSQLParserVisitor) VisitShowDatabases(ctx *ShowDatabasesContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

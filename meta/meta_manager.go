@@ -1,6 +1,8 @@
 package meta
 
 import (
+	"context"
+
 	"github.com/lindb/lindb/models"
 	"github.com/lindb/lindb/pkg/state"
 	"github.com/lindb/lindb/spi/types"
@@ -20,4 +22,6 @@ type MetadataManager interface {
 	GetDatabases() []models.Database
 	GetPartitions(database, ns, table string) (partitions map[models.InternalNode][]int, err error)
 	GetTableMetadata(database, ns, table string) (*types.TableMetadata, error)
+
+	CreateDatabase(ctx context.Context, database *models.Database) error
 }
