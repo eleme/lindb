@@ -129,10 +129,20 @@ func (v *AstVisitor) VisitDdlStatement(ctx *grammar.DdlStatementContext) any {
 	switch {
 	case ctx.CreateDatabase() != nil:
 		return v.Visit(ctx.CreateDatabase())
+	case ctx.DropDatabase() != nil:
+		return v.Visit(ctx.DropDatabase())
 	case ctx.CreateBroker() != nil:
 		panic("need impl create broker")
 	default:
 		return v.VisitChildren(ctx)
+	}
+}
+
+func (v *AstVisitor) VisitDropDatabase(ctx *grammar.DropDatabaseContext) any {
+	return &DropDatabase{
+		BaseNode: v.createBaseNode(ctx),
+		Name:     v.getQualifiedName(ctx.QualifiedName()).Name,
+		Exists:   ctx.EXISTS() != nil,
 	}
 }
 

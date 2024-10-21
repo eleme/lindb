@@ -13,6 +13,7 @@ var statementTypes = make(map[reflect.Type]models.StatementType)
 func init() {
 	// DDL
 	statementTypes[reflect.TypeOf(&tree.CreateDatabase{})] = models.DataDefinition
+	statementTypes[reflect.TypeOf(&tree.DropDatabase{})] = models.DataDefinition
 	// DML
 	statementTypes[reflect.TypeOf(&tree.Query{})] = models.Select
 	// Explain

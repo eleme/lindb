@@ -5,9 +5,7 @@ import (
 	"github.com/lindb/lindb/sql/tree"
 )
 
-var (
-	executionFactories = make(map[models.StatementType]ExecutionFactory)
-)
+var executionFactories = make(map[models.StatementType]ExecutionFactory)
 
 func RegisterExecutionFactory(statementType models.StatementType, factory ExecutionFactory) {
 	executionFactories[statementType] = factory
@@ -37,6 +35,8 @@ func (f *DataDefinitionExecutionFactory) CreateExecution(session *Session, state
 	switch sType := statement.Statement.(type) {
 	case *tree.CreateDatabase:
 		task = NewCreateDatabaseTask(f.deps, sType)
+	case *tree.DropDatabase:
+		task = NewDropDatabaseTask(f.deps, sType)
 	}
 	return NewDataDefinitionExecution(task)
 }

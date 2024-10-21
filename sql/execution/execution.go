@@ -39,8 +39,10 @@ func NewDataDefinitionExecution(task DataDefinitionTask) Execution {
 
 func (exec *DataDefinitionExecution) Start() any {
 	err := exec.task.Execute(context.TODO())
+	if err != nil {
+		panic(err)
+	}
 	// TODO: add log
-	fmt.Println(err)
 
 	fmt.Println("execution task")
 	fmt.Println(exec.task.Name())

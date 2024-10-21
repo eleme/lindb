@@ -135,3 +135,7 @@ func (m *brokerMetadataManager) GetTableMetadata(database, ns, table string) (*t
 func (m *brokerMetadataManager) CreateDatabase(ctx context.Context, database *models.Database) error {
 	return m.masterStateMgr.CreateDatabase(ctx, database)
 }
+
+func (m *brokerMetadataManager) DropDatabase(ctx context.Context, database string) error {
+	return m.masterStateMgr.DropDatabase(ctx, database)
+}
