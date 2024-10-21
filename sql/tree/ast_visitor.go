@@ -68,7 +68,10 @@ func (v *AstVisitor) VisitShowNamespaces(ctx *grammar.ShowNamespacesContext) any
 		}
 		show.LikePattern = value
 	}
-	return show
+	return &Show{
+		BaseNode: v.createBaseNode(ctx),
+		Body:     show,
+	}
 }
 
 func (v *AstVisitor) VisitShowTableNames(ctx *grammar.ShowTableNamesContext) any {
@@ -83,27 +86,42 @@ func (v *AstVisitor) VisitShowTableNames(ctx *grammar.ShowTableNamesContext) any
 		}
 		show.LikePattern = value
 	}
-	return show
+	return &Show{
+		BaseNode: v.createBaseNode(ctx),
+		Body:     show,
+	}
 }
 
 func (v *AstVisitor) VisitShowColumns(ctx *grammar.ShowColumnsContext) any {
-	return &ShowColumns{
+	show := &ShowColumns{
 		Table: &Table{
 			BaseNode: v.createBaseNode(ctx),
 			Name:     v.getQualifiedName(ctx.QualifiedName()),
 		},
 	}
+	return &Show{
+		BaseNode: v.createBaseNode(ctx),
+		Body:     show,
+	}
 }
 
 func (v *AstVisitor) VisitShowReplications(ctx *grammar.ShowReplicationsContext) any {
-	return &ShowReplications{
+	show := &ShowReplications{
 		BaseNode: v.createBaseNode(ctx),
+	}
+	return &Show{
+		BaseNode: v.createBaseNode(ctx),
+		Body:     show,
 	}
 }
 
 func (v *AstVisitor) VisitShowMemoryDatabases(ctx *grammar.ShowMemoryDatabasesContext) any {
-	return &ShowMemoryDatabases{
+	show := &ShowMemoryDatabases{
 		BaseNode: v.createBaseNode(ctx),
+	}
+	return &Show{
+		BaseNode: v.createBaseNode(ctx),
+		Body:     show,
 	}
 }
 

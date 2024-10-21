@@ -32,6 +32,8 @@ func (r *ShowQueriesRewrite) Rewrite(statement tree.Statement) tree.Statement {
 
 func (v *ShowQueriesRewrite) Visit(context any, n tree.Node) (r any) {
 	switch node := n.(type) {
+	case *tree.Show:
+		return node.Body.Accept(context, v)
 	case *tree.ShowReplications:
 		var terms []tree.Expression
 		terms = append(terms, v.builder.StringEqual("table_schema", v.db)) // database
