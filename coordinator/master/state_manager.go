@@ -58,6 +58,7 @@ type StateManager interface {
 	GetStorageState() *models.StorageState
 
 	CreateDatabase(ctx context.Context, databaseCfg *models.Database) error
+	DropDatabase(ctx context.Context, database string) error
 }
 
 // stateManager implements StateManager.
@@ -586,6 +587,10 @@ func (m *stateManager) GetStorageState() *models.StorageState {
 
 func (m *stateManager) CreateDatabase(ctx context.Context, database *models.Database) error {
 	return m.masterRepo.Put(ctx, constants.GetDatabaseConfigPath(database.Name), encoding.JSONMarshal(database))
+}
+
+func (m *stateManager) DropDatabase(ctx context.Context, name string) error {
+	return m.masterRepo.Delete(ctx, constants.GetDatabaseConfigPath(name))
 }
 
 // initializeShardState initializes the shard state based on shard assignment for storage cluster.

@@ -24,4 +24,5 @@ type MetadataManager interface {
 	GetTableMetadata(database, ns, table string) (*types.TableMetadata, error)
 
 	CreateDatabase(ctx context.Context, database *models.Database) error
+	DropDatabase(ctx context.Context, database string) error
 }
