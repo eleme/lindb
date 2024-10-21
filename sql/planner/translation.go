@@ -26,7 +26,7 @@ type TranslationMap struct {
 
 func (t *TranslationMap) Rewrite(expr tree.Expression) tree.Expression {
 	// TODO: check symbol referencea are not allowed/expr if analyzed
-	fmt.Sprintf("rewrite expression=%v,%T\n", expr)
+	fmt.Printf("rewrite expression=%v,%T\n", expr)
 	return t.translate(expr, true)
 }
 

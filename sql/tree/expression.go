@@ -71,7 +71,7 @@ func (n *Cast) Accept(context any, visitor Visitor) (r any) {
 type FieldReference struct {
 	BaseNode
 
-	FieldIndex int
+	FieldIndex FieldIndex
 }
 
 func (n *FieldReference) Accept(context any, visitor Visitor) (r any) {

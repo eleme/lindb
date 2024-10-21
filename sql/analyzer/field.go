@@ -6,14 +6,14 @@ import (
 
 type FieldID struct {
 	RelationID *RelationID
-	FieldIndex int
+	FieldIndex tree.FieldIndex
 }
 
 type ResolvedField struct {
 	Scope               *Scope
 	Field               *tree.Field
-	HierarchyFieldIndex int
-	RelationFieldIndex  int
+	HierarchyFieldIndex tree.FieldIndex
+	RelationFieldIndex  tree.FieldIndex
 	Local               bool
 }
 

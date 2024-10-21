@@ -35,7 +35,7 @@ func createScope(parent *Scope) *Scope {
 	}
 }
 
-func (scope *Scope) getField(index int) *ResolvedField {
+func (scope *Scope) getField(index tree.FieldIndex) *ResolvedField {
 	parentFieldCount := 0
 	parentScope := scope.getLocalParent()
 	if parentScope != nil {
@@ -99,11 +99,12 @@ func (scope *Scope) resolveField(node tree.Expression, name *tree.QualifiedName,
 
 func (scope *Scope) asResolvedField(field *tree.Field, fieldIndexOffset int, local bool) *ResolvedField {
 	relationFieldIndex := scope.RelationType.IndexOf(field)
+	fmt.Printf("as resolved field: %v\n", *field)
 	return &ResolvedField{
 		Field:               field,
 		Scope:               scope,
 		RelationFieldIndex:  relationFieldIndex,
-		HierarchyFieldIndex: relationFieldIndex + fieldIndexOffset,
+		HierarchyFieldIndex: relationFieldIndex + tree.FieldIndex(fieldIndexOffset),
 		Local:               local,
 	}
 }

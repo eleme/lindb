@@ -90,6 +90,7 @@ func (v *StatementVisitor) visitQuery(context any, node *tree.Query) (r any) {
 
 	// analyze query body
 	queryBodyScope := node.QueryBody.Accept(withScope, v).(*Scope)
+	fmt.Printf("after query body%v,%v\n", queryBodyScope.RelationType.Fields, len(queryBodyScope.RelationType.Fields))
 
 	// analyze order by
 	var orderByExpressions []tree.Expression
@@ -129,6 +130,7 @@ func (v *StatementVisitor) visitQuerySpecification(context any, node *tree.Query
 	v.analyzeHaving(node, sourceScope)
 
 	outputScope := v.computeAndAssignOutputScope(node, scope, sourceScope)
+	fmt.Printf("after outputExpressions=%v,%v\n", outputScope.RelationType.Fields, len(outputScope.RelationType.Fields))
 
 	var orderByExpressions []tree.Expression
 	var orderByScope *Scope
@@ -162,6 +164,7 @@ func (v *StatementVisitor) visitQuerySpecification(context any, node *tree.Query
 	v.analyzeAggregations(node, sourceScope, orderByScope, groupByAnalysis, sourceExpressions, orderByExpressions)
 
 	// FIXME: order agg
+	fmt.Println("query spec done....")
 
 	return outputScope
 }
@@ -225,10 +228,11 @@ func (v *StatementVisitor) visitValues(context any, values *tree.Values) (r any)
 	scope := context.(*Scope)
 	layout := values.Rows.Layout
 	var fields []*tree.Field
-	for _, column := range layout {
+	for i, column := range layout {
 		fields = append(fields, &tree.Field{
 			Name:     column.Name,
 			DataType: column.DataType,
+			Index:    tree.FieldIndex(i),
 		})
 	}
 
@@ -263,7 +267,7 @@ func (v *StatementVisitor) visitTable(ctx any, table *tree.Table) (r any) {
 	for i, col := range tableMetadata.Schema.Columns {
 		// TODO: check agg????
 		outputFields = append(outputFields, &tree.Field{
-			Index:         i,
+			Index:         tree.FieldIndex(i),
 			Name:          col.Name, // TODO: dup tag name/field name
 			DataType:      col.DataType,
 			Hidden:        col.Hidden,
@@ -337,6 +341,7 @@ func (v *StatementVisitor) analyzeSelectSingleColumn(singleColumn *tree.SingleCo
 	scope *Scope, outputExpressions []tree.Expression, selectExpressions []*SelectExpression,
 ) (outputs []tree.Expression, selects []*SelectExpression) {
 	expression := singleColumn.Expression
+	fmt.Printf("analyzeSelectSingleColumn=%v,%T\n", singleColumn.Expression, singleColumn.Expression)
 	v.analyzeExpression(expression, scope)
 	outputExpressions = append(outputExpressions, expression)
 	selectExpressions = append(selectExpressions, &SelectExpression{
@@ -396,6 +401,7 @@ func (v *StatementVisitor) analyzeAllColumnsFromTable(allColumns *tree.AllColumn
 			},
 			FieldIndex: field.Index,
 		}
+		fmt.Printf("analyzeAllColumnsFromTable=%v\n", field)
 		v.analyzeExpression(fieldRef, scope)
 		outputExpressions = append(outputExpressions, fieldRef)
 		selectExpressions = append(selectExpressions, &SelectExpression{
@@ -639,12 +645,14 @@ func (v *StatementVisitor) computeAndAssignOutputScope(node *tree.QuerySpecifica
 			}
 
 			outputFields = append(outputFields, &tree.Field{
-				Name: fieldName,
+				Name:  fieldName,
+				Index: tree.FieldIndex(i),
 			})
 		default:
 			panic(fmt.Sprintf("unsupported selec type type: %s", reflect.TypeOf(item)))
 		}
 	}
+	fmt.Printf("compute and assign output scope: %v,%v\n", outputFields, len(outputFields))
 	return v.createAndAssignScope(node, scope, NewRelation(outputFields))
 }
 
@@ -655,12 +663,13 @@ func (v *StatementVisitor) computeAndAssignOrderByScope(node *tree.OrderBy,
 }
 
 func (v *StatementVisitor) descriptorToFields(scope *Scope) (selectExpressions []*SelectExpression) {
-	for i := range scope.RelationType.Fields {
+	for _, field := range scope.RelationType.Fields {
+		fmt.Printf("descriptorToFields=%v,%T\n", field, field)
 		expression := &tree.FieldReference{
 			BaseNode: tree.BaseNode{
 				ID: v.analyzer.ctx.IDAllocator.Next(),
 			},
-			FieldIndex: i,
+			FieldIndex: field.Index,
 		}
 		selectExpressions = append(selectExpressions, &SelectExpression{
 			Expression: expression,

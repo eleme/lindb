@@ -257,7 +257,10 @@ func (a *Analysis) IsColumnReference(node tree.Expression) bool {
 
 func (a *Analysis) GetColumnReferenceField(node tree.Expression) (field *ResolvedField) {
 	field = a.columnReferences[node.GetID()]
-	fmt.Printf("get column reference field: %v,%v\n", node.GetID(), field)
+	fmt.Printf("get column reference field: %v,%v,%v\n", node.GetID(), field, a.columnReferences)
+	if field != nil {
+		fmt.Println(field.Field.Name)
+	}
 	return
 }
 

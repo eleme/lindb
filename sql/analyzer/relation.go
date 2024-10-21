@@ -18,17 +18,19 @@ var (
 )
 
 type Relation struct {
-	Fields       []*tree.Field
-	FieldIndexes map[string]int
+	Fields []*tree.Field
+
+	// cannot use field name, field name is empty when select item isn't Identifier/Dereference
+	FieldIndexes map[*tree.Field]tree.FieldIndex
 }
 
 func NewRelation(fields []*tree.Field) *Relation {
 	rt := &Relation{
 		Fields:       fields,
-		FieldIndexes: make(map[string]int),
+		FieldIndexes: make(map[*tree.Field]tree.FieldIndex),
 	}
-	for i, f := range fields {
-		rt.FieldIndexes[f.Name] = i
+	for _, f := range fields {
+		rt.FieldIndexes[f] = f.Index
 	}
 	fmt.Printf("new relation fields=%v\n", rt.FieldIndexes)
 	return rt
@@ -48,6 +50,7 @@ func (r *Relation) withAlias(relationAlias string, columnAliases []string) *Rela
 			Name:          columnAlias,
 			DataType:      field.DataType,
 			AggType:       field.AggType,
+			Index:         field.Index,
 			RelationAlias: tree.NewQualifiedName([]*tree.Identifier{{Value: relationAlias}}),
 		})
 	}
@@ -61,7 +64,7 @@ func (r *Relation) joinWith(other *Relation) *Relation {
 	return NewRelation(fields)
 }
 
-func (r *Relation) getFieldByIndex(fieldIndex int) *tree.Field {
+func (r *Relation) getFieldByIndex(fieldIndex tree.FieldIndex) *tree.Field {
 	return r.Fields[fieldIndex]
 }
 
@@ -71,9 +74,9 @@ func (r *Relation) resolveFields(name *tree.QualifiedName) (result []*tree.Field
 	})
 }
 
-func (r *Relation) IndexOf(field *tree.Field) int {
+func (r *Relation) IndexOf(field *tree.Field) tree.FieldIndex {
 	fmt.Printf("relation index of %v\n", r.FieldIndexes)
-	return r.FieldIndexes[field.Name]
+	return r.FieldIndexes[field]
 }
 
 type RelationID struct {

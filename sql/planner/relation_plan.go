@@ -5,6 +5,7 @@ import (
 
 	"github.com/lindb/lindb/sql/analyzer"
 	"github.com/lindb/lindb/sql/planner/plan"
+	"github.com/lindb/lindb/sql/tree"
 )
 
 type RelationPlan struct {
@@ -14,7 +15,8 @@ type RelationPlan struct {
 	FieldMappings []*plan.Symbol
 }
 
-func (r *RelationPlan) getSymbol(fieldIdx int) *plan.Symbol {
+func (r *RelationPlan) getSymbol(fieldIndex tree.FieldIndex) *plan.Symbol {
+	fieldIdx := int(fieldIndex)
 	if fieldIdx < 0 || fieldIdx >= len(r.FieldMappings) {
 		panic(fmt.Sprintf("no field->symbol mapping for field %d", fieldIdx))
 	}

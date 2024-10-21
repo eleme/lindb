@@ -6,12 +6,14 @@ import (
 	"github.com/lindb/lindb/spi/types"
 )
 
+type FieldIndex int
+
 type Field struct {
 	RelationAlias *QualifiedName
 	Name          string
 	DataType      types.DataType
 	AggType       types.AggregateType
-	Index         int
+	Index         FieldIndex // set field index when statement analyzer(visit relation)
 	Hidden        bool
 }
 

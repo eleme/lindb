@@ -67,12 +67,14 @@ func (p *QueryPlanner) planQuerySpecification(node *tree.QuerySpecification) *Re
 	builder := p.planFrom(node)
 	// where clause
 	builder = p.filter(builder, p.context.AnalyzerContext.Analysis.GetWhere(node), node)
+	fmt.Println("group by .......")
 	// agg/group by
 	builder = p.aggregate(builder, node)
 	// TODO: having
 	// TODO: sub query
 
 	selectExpressions := p.context.AnalyzerContext.Analysis.GetSelectExpressions(node)
+	fmt.Println("output expressions .......")
 	outputs := p.outputExpressions(selectExpressions)
 	// TODO: sort/order by
 
