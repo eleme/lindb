@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"github.com/lindb/common/pkg/encoding"
-	"github.com/mitchellh/mapstructure"
 
-	"github.com/lindb/lindb/constants"
 	"github.com/lindb/lindb/models"
 	"github.com/lindb/lindb/pkg/option"
+	"github.com/lindb/lindb/sql/expression"
 	"github.com/lindb/lindb/sql/tree"
 )
 
@@ -29,20 +28,7 @@ func (task *CreateDatabaseTask) Name() string {
 }
 
 func (task *CreateDatabaseTask) Execute(ctx context.Context) error {
-	options := option.DatabaseOption{}
-	err := mapstructure.Decode(task.statement.Props, &options)
-	if err != nil {
-		return err
-	}
-	// rollup interval options
-	for _, rollup := range task.statement.Rollup {
-		rollupOption := option.Interval{}
-		err = mapstructure.Decode(rollup, &rollupOption)
-		if err != nil {
-			return err
-		}
-		options.Intervals = append(options.Intervals, rollupOption)
-	}
+	// FIXME: check database exist
 	engineType := models.Metric
 	for _, option := range task.statement.CreateOptions {
 		switch createOption := option.(type) {
@@ -52,19 +38,63 @@ func (task *CreateDatabaseTask) Execute(ctx context.Context) error {
 			panic("unknown option type")
 		}
 	}
+	evalCtx := expression.NewEvalContext(ctx)
+	switch engineType {
+	case models.Metric:
+		// FIXME: need check alive node/shard/replica
+		database, err := task.buildMetricDatabase(evalCtx, engineType)
+		if err != nil {
+			return err
+		}
+		// save database config
+		// TODO: remove metadata manager
+		if err := task.deps.MetaMgr.CreateDatabase(ctx, database); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (task *CreateDatabaseTask) buildMetricDatabase(
+	evalCtx expression.EvalContext,
+	engineType models.EngineType,
+) (*models.Database, error) {
+	options := option.DatabaseOption{}
+	if err := task.evalPropsExpression(evalCtx, task.statement.Props, &options); err != nil {
+		return nil, err
+	}
+	// rollup interval options
+	for _, rollup := range task.statement.Rollup {
+		rollupOption := option.Interval{}
+		if err := task.evalPropsExpression(evalCtx, rollup.Props, &rollupOption); err != nil {
+			return nil, err
+		}
+		options.Intervals = append(options.Intervals, rollupOption)
+	}
 	database := &models.Database{
 		Name:   task.statement.Name,
 		Engine: engineType,
 		Option: &options,
 	}
 	database.Default()
-	err = database.Validate()
-	if err != nil {
-		return err
+	if err := database.Validate(); err != nil {
+		return nil, err
 	}
-	// FIXME: need check alive node/shard/replica
-	data := encoding.JSONMarshal(database)
-	if err := task.deps.Repo.Put(ctx, constants.GetDatabaseConfigPath(database.Name), data); err != nil {
+	return database, nil
+}
+
+func (task *CreateDatabaseTask) evalPropsExpression(evalCtx expression.EvalContext, props []*tree.Property, result any) error {
+	values := make(map[string]any)
+	for _, prop := range props {
+		val, err := expression.Eval(evalCtx, prop.Value)
+		if err != nil {
+			return err
+		}
+		values[prop.Name.Value] = val
+	}
+	data := encoding.JSONMarshal(values)
+	if err := encoding.JSONUnmarshal(data, result); err != nil {
 		return err
 	}
 	return nil

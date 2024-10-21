@@ -32,6 +32,12 @@ func (r *rewriter) rewrite(node tree.Expression) Expression {
 	case *tree.StringLiteral:
 		// TODO: right?
 		return NewConstant(expr.Value, types.DTString)
+	case *tree.FloatLiteral:
+		// TODO: right?
+		return NewConstant(expr.Value, types.DTFloat)
+	case *tree.LongLiteral:
+		// TODO: right?
+		return NewConstant(expr.Value, types.DTInt)
 	case *tree.Constant:
 		return NewConstant(expr.Value, expr.Type)
 	case *tree.SymbolReference:

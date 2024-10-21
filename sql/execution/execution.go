@@ -12,6 +12,7 @@ import (
 	"github.com/lindb/lindb/models"
 	"github.com/lindb/lindb/pkg/utils"
 	protoCommandV1 "github.com/lindb/lindb/proto/gen/v1/command"
+	"github.com/lindb/lindb/spi/types"
 	"github.com/lindb/lindb/sql/execution/buffer"
 	"github.com/lindb/lindb/sql/execution/model"
 	"github.com/lindb/lindb/sql/execution/pipeline"
@@ -43,7 +44,7 @@ func (exec *DataDefinitionExecution) Start() any {
 
 	fmt.Println("execution task")
 	fmt.Println(exec.task.Name())
-	return nil
+	return types.NewPage()
 }
 
 type QueryContext struct {

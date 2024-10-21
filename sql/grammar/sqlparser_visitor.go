@@ -34,6 +34,15 @@ type SQLParserVisitor interface {
 	// Visit a parse tree produced by SQLParser#createDatabase.
 	VisitCreateDatabase(ctx *CreateDatabaseContext) interface{}
 
+	// Visit a parse tree produced by SQLParser#dbOptions.
+	VisitDbOptions(ctx *DbOptionsContext) interface{}
+
+	// Visit a parse tree produced by SQLParser#withProps.
+	VisitWithProps(ctx *WithPropsContext) interface{}
+
+	// Visit a parse tree produced by SQLParser#rollupProps.
+	VisitRollupProps(ctx *RollupPropsContext) interface{}
+
 	// Visit a parse tree produced by SQLParser#engineOption.
 	VisitEngineOption(ctx *EngineOptionContext) interface{}
 
@@ -63,18 +72,6 @@ type SQLParserVisitor interface {
 
 	// Visit a parse tree produced by SQLParser#showLimit.
 	VisitShowLimit(ctx *ShowLimitContext) interface{}
-
-	// Visit a parse tree produced by SQLParser#showMetadataTypes.
-	VisitShowMetadataTypes(ctx *ShowMetadataTypesContext) interface{}
-
-	// Visit a parse tree produced by SQLParser#showMetadatas.
-	VisitShowMetadatas(ctx *ShowMetadatasContext) interface{}
-
-	// Visit a parse tree produced by SQLParser#showState.
-	VisitShowState(ctx *ShowStateContext) interface{}
-
-	// Visit a parse tree produced by SQLParser#showDatabases.
-	VisitShowDatabases(ctx *ShowDatabasesContext) interface{}
 
 	// Visit a parse tree produced by SQLParser#showMemoryDatabases.
 	VisitShowMemoryDatabases(ctx *ShowMemoryDatabasesContext) interface{}

@@ -131,3 +131,7 @@ func (m *brokerMetadataManager) GetTableMetadata(database, ns, table string) (*t
 		Partitions: partitions,
 	}, nil
 }
+
+func (m *brokerMetadataManager) CreateDatabase(ctx context.Context, database *models.Database) error {
+	return m.masterStateMgr.CreateDatabase(ctx, database)
+}

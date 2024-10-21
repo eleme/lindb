@@ -74,6 +74,24 @@ func (s *BaseSQLParserListener) EnterCreateDatabase(ctx *CreateDatabaseContext) 
 // ExitCreateDatabase is called when production createDatabase is exited.
 func (s *BaseSQLParserListener) ExitCreateDatabase(ctx *CreateDatabaseContext) {}
 
+// EnterDbOptions is called when production dbOptions is entered.
+func (s *BaseSQLParserListener) EnterDbOptions(ctx *DbOptionsContext) {}
+
+// ExitDbOptions is called when production dbOptions is exited.
+func (s *BaseSQLParserListener) ExitDbOptions(ctx *DbOptionsContext) {}
+
+// EnterWithProps is called when production withProps is entered.
+func (s *BaseSQLParserListener) EnterWithProps(ctx *WithPropsContext) {}
+
+// ExitWithProps is called when production withProps is exited.
+func (s *BaseSQLParserListener) ExitWithProps(ctx *WithPropsContext) {}
+
+// EnterRollupProps is called when production rollupProps is entered.
+func (s *BaseSQLParserListener) EnterRollupProps(ctx *RollupPropsContext) {}
+
+// ExitRollupProps is called when production rollupProps is exited.
+func (s *BaseSQLParserListener) ExitRollupProps(ctx *RollupPropsContext) {}
+
 // EnterEngineOption is called when production engineOption is entered.
 func (s *BaseSQLParserListener) EnterEngineOption(ctx *EngineOptionContext) {}
 
@@ -133,30 +151,6 @@ func (s *BaseSQLParserListener) EnterShowLimit(ctx *ShowLimitContext) {}
 
 // ExitShowLimit is called when production showLimit is exited.
 func (s *BaseSQLParserListener) ExitShowLimit(ctx *ShowLimitContext) {}
-
-// EnterShowMetadataTypes is called when production showMetadataTypes is entered.
-func (s *BaseSQLParserListener) EnterShowMetadataTypes(ctx *ShowMetadataTypesContext) {}
-
-// ExitShowMetadataTypes is called when production showMetadataTypes is exited.
-func (s *BaseSQLParserListener) ExitShowMetadataTypes(ctx *ShowMetadataTypesContext) {}
-
-// EnterShowMetadatas is called when production showMetadatas is entered.
-func (s *BaseSQLParserListener) EnterShowMetadatas(ctx *ShowMetadatasContext) {}
-
-// ExitShowMetadatas is called when production showMetadatas is exited.
-func (s *BaseSQLParserListener) ExitShowMetadatas(ctx *ShowMetadatasContext) {}
-
-// EnterShowState is called when production showState is entered.
-func (s *BaseSQLParserListener) EnterShowState(ctx *ShowStateContext) {}
-
-// ExitShowState is called when production showState is exited.
-func (s *BaseSQLParserListener) ExitShowState(ctx *ShowStateContext) {}
-
-// EnterShowDatabases is called when production showDatabases is entered.
-func (s *BaseSQLParserListener) EnterShowDatabases(ctx *ShowDatabasesContext) {}
-
-// ExitShowDatabases is called when production showDatabases is exited.
-func (s *BaseSQLParserListener) ExitShowDatabases(ctx *ShowDatabasesContext) {}
 
 // EnterShowMemoryDatabases is called when production showMemoryDatabases is entered.
 func (s *BaseSQLParserListener) EnterShowMemoryDatabases(ctx *ShowMemoryDatabasesContext) {}

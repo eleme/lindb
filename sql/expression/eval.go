@@ -18,3 +18,20 @@ func EvalString(ctx EvalContext, expression tree.Expression) (string, error) {
 	val, _, err := expr.EvalString(ctx, types.EmptyRow)
 	return val, err
 }
+
+func Eval(ctx EvalContext, expression tree.Expression) (val any, err error) {
+	expr := Rewrite(&RewriteContext{}, expression)
+	switch expr.GetType() {
+	case types.DTInt:
+		val, _, err = expr.EvalInt(ctx, types.EmptyRow)
+	case types.DTFloat:
+		val, _, err = expr.EvalFloat(ctx, types.EmptyRow)
+	case types.DTString:
+		val, _, err = expr.EvalString(ctx, types.EmptyRow)
+	case types.DTTimestamp:
+		val, _, err = expr.EvalTime(ctx, types.EmptyRow)
+	case types.DTDuration:
+		val, _, err = expr.EvalDuration(ctx, types.EmptyRow)
+	}
+	return
+}
