@@ -67,6 +67,9 @@ type SQLParserVisitor interface {
 	// Visit a parse tree produced by SQLParser#showBrokers.
 	VisitShowBrokers(ctx *ShowBrokersContext) interface{}
 
+	// Visit a parse tree produced by SQLParser#showDatabases.
+	VisitShowDatabases(ctx *ShowDatabasesContext) interface{}
+
 	// Visit a parse tree produced by SQLParser#showRequests.
 	VisitShowRequests(ctx *ShowRequestsContext) interface{}
 

@@ -66,3 +66,11 @@ type ShowMemoryDatabases struct {
 func (n *ShowMemoryDatabases) Accept(context any, visitor Visitor) (r any) {
 	return visitor.Visit(context, n)
 }
+
+type ShowDatabases struct {
+	BaseNode
+}
+
+func (n *ShowDatabases) Accept(context any, visitor Visitor) (r any) {
+	return visitor.Visit(context, n)
+}

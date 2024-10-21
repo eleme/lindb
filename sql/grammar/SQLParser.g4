@@ -57,6 +57,7 @@ flushDatabase       : FLUSH DATABASE database=qualifiedName ;
 compactDatabase     : COMPACT DATABASE database=qualifiedName ;
 showStatement       : SHOW MASTER                                            #showMaster
                     | SHOW BROKERS                                           #showBrokers
+                    | SHOW DATABASES                                         #showDatabases
                     | SHOW REQUESTS                                          #showRequests
                     | SHOW LIMIT                                             #showLimit
                     | SHOW MEMORY_DATABASES                                  #showMemoryDatabases

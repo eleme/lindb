@@ -87,6 +87,10 @@ func (v *BaseSQLParserVisitor) VisitShowBrokers(ctx *ShowBrokersContext) interfa
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseSQLParserVisitor) VisitShowDatabases(ctx *ShowDatabasesContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseSQLParserVisitor) VisitShowRequests(ctx *ShowRequestsContext) interface{} {
 	return v.VisitChildren(ctx)
 }

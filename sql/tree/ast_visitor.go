@@ -59,6 +59,16 @@ func (v *AstVisitor) VisitAdminStatement(ctx *grammar.AdminStatementContext) any
 	return v.VisitChildren(ctx)
 }
 
+func (v *AstVisitor) VisitShowDatabases(ctx *grammar.ShowDatabasesContext) any {
+	show := &ShowDatabases{
+		BaseNode: v.createBaseNode(ctx),
+	}
+	return &Show{
+		BaseNode: v.createBaseNode(ctx),
+		Body:     show,
+	}
+}
+
 func (v *AstVisitor) VisitShowNamespaces(ctx *grammar.ShowNamespacesContext) any {
 	show := &ShowNamespaces{}
 	if ctx.GetNamespace() != nil {
