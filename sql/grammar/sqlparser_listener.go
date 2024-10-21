@@ -67,6 +67,9 @@ type SQLParserListener interface {
 	// EnterShowBrokers is called when entering the showBrokers production.
 	EnterShowBrokers(c *ShowBrokersContext)
 
+	// EnterShowDatabases is called when entering the showDatabases production.
+	EnterShowDatabases(c *ShowDatabasesContext)
+
 	// EnterShowRequests is called when entering the showRequests production.
 	EnterShowRequests(c *ShowRequestsContext)
 
@@ -348,6 +351,9 @@ type SQLParserListener interface {
 
 	// ExitShowBrokers is called when exiting the showBrokers production.
 	ExitShowBrokers(c *ShowBrokersContext)
+
+	// ExitShowDatabases is called when exiting the showDatabases production.
+	ExitShowDatabases(c *ShowDatabasesContext)
 
 	// ExitShowRequests is called when exiting the showRequests production.
 	ExitShowRequests(c *ShowRequestsContext)

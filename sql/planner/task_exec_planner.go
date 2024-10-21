@@ -38,7 +38,12 @@ func (p *TaskExecutionPlanner) Plan(taskCtx *context.TaskContext, node planpkg.P
 		panic("cannot get physicalOperator")
 	}
 
-	outputOperatorFct := output.NewRSOutputOperatorFactory(outputBuffer, node.GetOutputSymbols(), physicalOperator.GetLayout())
+	var columnNames []string
+	if outputNode, ok := node.(*planpkg.OutputNode); ok {
+		columnNames = outputNode.ColumnNames
+	}
+
+	outputOperatorFct := output.NewRSOutputOperatorFactory(outputBuffer, columnNames, node.GetOutputSymbols(), physicalOperator.GetLayout())
 	fmt.Printf("task exec plan:%T,output:%v,op:%T\n", node, physicalOperator.GetLayout(), physicalOperator)
 	// add output operator
 	taskExecPlanCtx.AddDriverFactory(NewPhysicalOperation(outputOperatorFct, node.GetOutputSymbols(), physicalOperator))

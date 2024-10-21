@@ -50,6 +50,17 @@ func (b *QueryBuilder) Query(body tree.QueryBody) *tree.Query {
 	return query
 }
 
+func (b *QueryBuilder) AliasedSelectItem(column, aliased string) *tree.Select {
+	singleColumn := &tree.SingleColumn{
+		Expression: b.Identifier(column),
+		Aliase:     b.Identifier(aliased),
+	}
+	b.setNodeID(singleColumn)
+	return &tree.Select{
+		SelectItems: []tree.SelectItem{singleColumn},
+	}
+}
+
 func (b *QueryBuilder) SelectItems(columns ...string) *tree.Select {
 	return &tree.Select{
 		SelectItems: lo.Map(columns, func(item string, index int) tree.SelectItem {

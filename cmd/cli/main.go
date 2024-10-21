@@ -1,4 +1,4 @@
-// Licensed to LinDB under one or more contributor
+// Licensed to LinDB under one or more contributormaiu
 // license agreements. See the NOTICE file distributed with
 // this work for additional information regarding copyright
 // ownership. LinDB licenses this file to you under
@@ -224,7 +224,7 @@ func main() {
 			if w == "" {
 				return nil, startIndex, endIndex
 			}
-			return prompt.FilterHasPrefix(suggestItems, w, true), 0, endIndex
+			return prompt.FilterHasPrefix(suggestItems, w, true), startIndex, endIndex
 		}),
 		prompt.WithPrefixCallback(func() string {
 			if live {

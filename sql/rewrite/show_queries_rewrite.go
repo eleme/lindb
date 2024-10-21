@@ -87,6 +87,13 @@ func (v *ShowQueriesRewrite) Visit(context any, n tree.Node) (r any) {
 				v.builder.StringEqual("table_name", node.Table.GetTableName()),
 			),
 		)
+	case *tree.ShowDatabases:
+		return v.builder.SimpleQuery(
+			v.builder.AliasedSelectItem("schema_name", "Database"),
+			v.builder.Table(constants.InformationSchema, commonConstants.DefaultNamespace, constants.TableSchemata),
+			nil,
+		)
+
 	}
 	return nil
 }
