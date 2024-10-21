@@ -1,5 +1,18 @@
 package tree
 
+type ShowBody interface {
+	Node
+}
+
+type Show struct {
+	BaseNode
+	Body ShowBody
+}
+
+func (n *Show) Accept(context any, visitor Visitor) (r any) {
+	return visitor.Visit(context, n)
+}
+
 type ShowNamespaces struct {
 	BaseNode
 
