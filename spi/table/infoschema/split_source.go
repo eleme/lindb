@@ -33,12 +33,12 @@ func (s *SplitSourceProvider) CreateSplitSources(ctx context.Context, table spi.
 	if !ok {
 		panic(fmt.Errorf("information table schema not found: %s", infoTable.Table))
 	}
-	var colIdxs []int
-	for _, col := range outputColumns {
-		if _, idx, ok := lo.FindIndexOf(schema.Columns, func(item types.ColumnMetadata) bool {
+	colIdxs := make([]int, len(outputColumns))
+	for i, col := range outputColumns {
+		if _, idx, exist := lo.FindIndexOf(schema.Columns, func(item types.ColumnMetadata) bool {
 			return item.Name == col.Name
-		}); ok {
-			colIdxs = append(colIdxs, idx)
+		}); exist {
+			colIdxs[i] = idx
 		}
 	}
 	if len(colIdxs) != len(outputColumns) {

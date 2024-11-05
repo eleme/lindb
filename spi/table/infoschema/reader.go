@@ -116,6 +116,7 @@ func (r *reader) readMaster() (rows [][]*types.Datum, err error) {
 	rows = append(rows, types.MakeDatums(
 		master.Node.HostIP,   // host_ip
 		master.Node.HostName, // host_name
+		master.Node.HTTPPort, // http
 		master.Node.Version,  // version
 		timeutil.FormatTimestamp(master.Node.OnlineTime, timeutil.DataTimeFormat2), // online_time
 		timeutil.FormatTimestamp(master.ElectTime, timeutil.DataTimeFormat2),       // elect_time

@@ -43,8 +43,13 @@ func (p *TaskExecutionPlanner) Plan(taskCtx *context.TaskContext, node planpkg.P
 		columnNames = outputNode.ColumnNames
 	}
 
-	outputOperatorFct := output.NewRSOutputOperatorFactory(outputBuffer, columnNames, node.GetOutputSymbols(), physicalOperator.GetLayout())
-	fmt.Printf("task exec plan:%T,output:%v,op:%T\n", node, physicalOperator.GetLayout(), physicalOperator)
+	sourceLayout := physicalOperator.GetLayout()
+	// // set source/output layout for output buffer
+	// outputBuffer.SetOutputLayout(node.GetOutputSymbols())
+	// outputBuffer.SetSourceLayout(sourceLayout)
+
+	outputOperatorFct := output.NewRSOutputOperatorFactory(outputBuffer, columnNames, node.GetOutputSymbols(), sourceLayout)
+	fmt.Printf("task exec plan:%T,output:%v,op:%T\n", node, sourceLayout, physicalOperator)
 	// add output operator
 	taskExecPlanCtx.AddDriverFactory(NewPhysicalOperation(outputOperatorFct, node.GetOutputSymbols(), physicalOperator))
 
