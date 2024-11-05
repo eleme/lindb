@@ -16,7 +16,7 @@ func NewTaskExecutionFactory() *TaskExecutionFactory {
 }
 
 func (fct *TaskExecutionFactory) Create(task *SQLTask, output buffer.OutputBuffer) *TaskExecution {
-	planner := planner.NewTaskExecutionPlanner()
+	taskPlanner := planner.NewTaskExecutionPlanner()
 
 	ctx := &sqlContext.TaskContext{
 		Context:    context.WithValue(context.TODO(), constants.ContextKeyCurrentTime, task.currentTime),
@@ -24,7 +24,7 @@ func (fct *TaskExecutionFactory) Create(task *SQLTask, output buffer.OutputBuffe
 		Fragment:   task.fragment,
 		Partitions: task.partitions,
 	}
-	plan := planner.Plan(ctx, task.fragment.Root, output)
+	plan := taskPlanner.Plan(ctx, task.fragment.Root, output)
 
 	return &TaskExecution{
 		taskCtx: ctx,

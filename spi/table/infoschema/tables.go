@@ -55,6 +55,7 @@ var (
 		Columns: []types.ColumnMetadata{
 			{Name: "host_ip", DataType: types.DTString},
 			{Name: "host_name", DataType: types.DTString},
+			{Name: "http", DataType: types.DTString},
 			{Name: "version", DataType: types.DTString},
 			{Name: "online_time", DataType: types.DTString},
 			{Name: "elect_time", DataType: types.DTString},

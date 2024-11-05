@@ -2,6 +2,9 @@ package output
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/lindb/common/pkg/encoding"
 
 	"github.com/lindb/lindb/spi/types"
 	"github.com/lindb/lindb/sql/execution/buffer"
@@ -61,15 +64,17 @@ func (op *ResultSetOutputOperator) AddInput(page *types.Page) {
 	}
 	if op.rebuildPage {
 		targetPage := types.NewPage()
-		for _, col := range op.layout {
+		for colIdx, col := range op.layout {
 			if idx, ok := op.sourceLayout[col.Name]; ok {
 				column := page.Layout[idx]
 				if len(op.columnNames) > 0 {
-					column.Name = op.columnNames[idx]
+					column.Name = op.columnNames[colIdx]
 				}
 				targetPage.AppendColumn(column, page.Columns[idx])
 			}
 		}
+		fmt.Printf("after result set output rebuild, page=%v target=%v\n",
+			string(encoding.JSONMarshal(page)), string(encoding.JSONMarshal(targetPage)))
 		op.output.AddPage(targetPage)
 	} else {
 		op.output.AddPage(page)

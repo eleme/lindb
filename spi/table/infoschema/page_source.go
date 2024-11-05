@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lindb/common/pkg/encoding"
+
 	"github.com/lindb/lindb/spi"
 	"github.com/lindb/lindb/spi/types"
 )
@@ -52,12 +54,13 @@ func (p *PageSource) GetNextPage() *types.Page {
 	fmt.Printf("info schema: rows=%v\n", rows)
 	page := types.NewPage()
 	var columns []*types.Column
-	for _, output := range p.outputs {
+	outputs := make(map[string]int)
+	for idx, output := range p.outputs {
 		column := types.NewColumn()
 		page.AppendColumn(output, column)
 		columns = append(columns, column)
+		outputs[output.Name] = idx
 	}
-	fmt.Printf("ouputs=%v,index=%v\n", p.outputs, p.split.colIdxs)
 	for _, row := range rows {
 		for idx, col := range columns {
 			switch p.outputs[idx].DataType {
@@ -72,5 +75,6 @@ func (p *PageSource) GetNextPage() *types.Page {
 			}
 		}
 	}
+	fmt.Printf("ouputs=%v,index=%v,page=%v\n", p.outputs, p.split.colIdxs, string(encoding.JSONMarshal(page)))
 	return page
 }

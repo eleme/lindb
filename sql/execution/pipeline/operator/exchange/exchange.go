@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lindb/common/pkg/encoding"
 	"go.uber.org/atomic"
 
 	"github.com/lindb/lindb/constants"
@@ -92,13 +93,14 @@ func (op *ExchangeOperator) GetOutput() *types.Page {
 			fmt.Println("page nil")
 			continue
 		}
+		// FIXME: do merge logic
 		// it := page.Iterator()
 		// groupingColumns := page.Grouping
 		// for row := it.Begin(); row != it.End(); row = it.Next() {
 		// 	fmt.Println("kkkk......")
 		// 	op.mergedPage.AppendColumn(page.Layout[], page.Columns[])
 		// }
-		fmt.Println("merge")
+		fmt.Printf("exchange merge,page=%v\n", string(encoding.JSONMarshal(page)))
 		op.mergedPage.Layout = page.Layout
 		op.mergedPage.Columns = page.Columns
 	}
