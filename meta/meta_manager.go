@@ -10,6 +10,7 @@ import (
 
 type MetadataManager interface {
 	GetStateRepo() state.Repository
+	GetCurrentNode() models.StatelessNode
 	// GetMaster returns the current master info.
 	GetMaster() *models.Master
 	// GetBrokerNodes returns all alive broker nodes.

@@ -90,22 +90,21 @@ func (r *reader) ReadData(ctx context.Context, table string, expression tree.Exp
 func (r *reader) readEnv(predicate *predicate) (rows [][]*types.Datum, err error) {
 	instance := predicate.getColumnValue(envSchema.Columns[0].Name) // instance
 	if instance == "" {
-		return nil, errors.New("instance not found in where clause(ip:port)")
+		currentNode := r.metadataMgr.GetCurrentNode()
+		instance = fmt.Sprintf("%s:%d", currentNode.HostIP, currentNode.HTTPPort)
 	}
-	key := predicate.getColumnValue(envSchema.Columns[1].Name) // key
-	envs, err := r.env(instance)
+	keys := predicate.getColumnValues(envSchema.Columns[1].Name) // key
+	envs, err := r.env(instance, keys)
 	if err != nil {
 		return nil, err
 	}
 	for _, env := range envs {
-		if key == "" || env.Key == key {
-			rows = append(rows, types.MakeDatums(
-				instance,    // instance
-				env.Key,     // key
-				env.Value,   // value
-				env.Default, // default
-			))
-		}
+		rows = append(rows, types.MakeDatums(
+			instance,    // instance
+			env.Key,     // key
+			env.Value,   // value
+			env.Default, // default
+		))
 	}
 	return
 }

@@ -42,6 +42,10 @@ func (m *brokerMetadataManager) GetStateRepo() state.Repository {
 	return m.repo
 }
 
+func (m *brokerMetadataManager) GetCurrentNode() models.StatelessNode {
+	return m.brokerStateMgr.GetCurrentNode()
+}
+
 func (m *brokerMetadataManager) GetMaster() *models.Master {
 	return m.masterController.GetMaster()
 }

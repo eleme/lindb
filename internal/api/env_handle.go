@@ -20,6 +20,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/lindb/common/pkg/http"
+	"github.com/samber/lo"
 
 	"github.com/lindb/lindb/config"
 )
@@ -45,5 +46,19 @@ func (api *EnvAPI) Register(route gin.IRoutes) {
 
 // GetEnv returns LinDB's env vars.
 func (api *EnvAPI) GetEnv(c *gin.Context) {
-	http.OK(c, api.envs)
+	var param struct {
+		Key []string `form:"key"`
+	}
+	err := c.ShouldBindQuery(&param)
+	if err != nil {
+		http.Error(c, err)
+		return
+	}
+	envs := api.envs
+	if len(param.Key) > 0 {
+		envs = lo.Filter(envs, func(item config.Env, index int) bool {
+			return lo.Contains(param.Key, item.Key)
+		})
+	}
+	http.OK(c, envs)
 }

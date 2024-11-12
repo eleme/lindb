@@ -2,6 +2,7 @@ package infoschema
 
 import (
 	"context"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -80,10 +81,13 @@ func (r *reader) suggestTables(database, ns, table string, limit int64) ([]strin
 	return values, nil
 }
 
-func (r *reader) env(address string) (rs []config.Env, err error) {
+func (r *reader) env(address string, keys []string) (rs []config.Env, err error) {
 	_, err = resty.New().R().
 		SetHeader("Accept", "application/json").
 		SetResult(&rs).
+		SetQueryParamsFromValues(url.Values{
+			"key": keys,
+		}).
 		Get("http://" + address + constants.APIVersion1CliPath + "/env")
 	return
 }
