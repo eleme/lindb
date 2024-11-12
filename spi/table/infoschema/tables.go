@@ -55,10 +55,10 @@ var (
 		Columns: []types.ColumnMetadata{
 			{Name: "host_ip", DataType: types.DTString},
 			{Name: "host_name", DataType: types.DTString},
-			{Name: "http", DataType: types.DTString},
+			{Name: "http", DataType: types.DTInt},
 			{Name: "version", DataType: types.DTString},
-			{Name: "online_time", DataType: types.DTString},
-			{Name: "elect_time", DataType: types.DTString},
+			{Name: "online_time", DataType: types.DTTimestamp},
+			{Name: "elect_time", DataType: types.DTTimestamp},
 		},
 	}
 	brokerSchema = &types.TableSchema{
@@ -66,7 +66,7 @@ var (
 			{Name: "host_ip", DataType: types.DTString},
 			{Name: "host_name", DataType: types.DTString},
 			{Name: "version", DataType: types.DTString},
-			{Name: "online_time", DataType: types.DTString},
+			{Name: "online_time", DataType: types.DTTimestamp},
 			{Name: "grpc", DataType: types.DTInt},
 			{Name: "http", DataType: types.DTInt},
 		},
@@ -77,7 +77,7 @@ var (
 			{Name: "host_ip", DataType: types.DTString},
 			{Name: "host_name", DataType: types.DTString},
 			{Name: "version", DataType: types.DTString},
-			{Name: "online_time", DataType: types.DTString},
+			{Name: "online_time", DataType: types.DTTimestamp},
 			{Name: "grpc", DataType: types.DTInt},
 			{Name: "http", DataType: types.DTInt},
 		},
@@ -151,8 +151,9 @@ var (
 			{Name: "role", DataType: types.DTString},
 			{Name: "name", DataType: types.DTString},
 			{Name: "tags", DataType: types.DTString},
-			{Name: "type", DataType: types.DTString},
-			{Name: "value", DataType: types.DTFloat},
+			{Name: "field_name", DataType: types.DTString},
+			{Name: "field_type", DataType: types.DTString},
+			{Name: "field_value", DataType: types.DTFloat},
 		},
 	}
 	metadataTypesSchema = &types.TableSchema{
