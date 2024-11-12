@@ -17,4 +17,5 @@ func init() {
 	encoding.RegisterNodeType(Float(0))
 	encoding.RegisterNodeType(Int(0))
 	encoding.RegisterNodeType(time.Time{})
+	encoding.RegisterNodeType(time.Duration(0))
 }

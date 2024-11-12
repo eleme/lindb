@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	commonConstants "github.com/lindb/common/constants"
 	"github.com/lindb/common/pkg/encoding"
@@ -124,14 +125,16 @@ func (r *reader) readMaster() (rows [][]*types.Datum, err error) {
 
 func (r *reader) readBroker() (rows [][]*types.Datum, err error) {
 	nodes := r.metadataMgr.GetBrokerNodes()
+	now := time.Now().UnixMilli()
 	for _, node := range nodes {
 		rows = append(rows, types.MakeDatums(
 			node.HostIP,     // host_ip
 			node.HostName,   // host_name
 			node.Version,    // version
 			node.OnlineTime, // online_time
-			node.GRPCPort,   // grpc
-			node.HTTPPort,   // http
+			time.Duration((now-node.OnlineTime)*1000_000), // uptime
+			node.GRPCPort, // grpc
+			node.HTTPPort, // http
 		))
 	}
 	return
@@ -139,6 +142,7 @@ func (r *reader) readBroker() (rows [][]*types.Datum, err error) {
 
 func (r *reader) readStorage() (rows [][]*types.Datum, err error) {
 	nodes := r.metadataMgr.GetStorageNodes()
+	now := time.Now().UnixMilli()
 	for _, node := range nodes {
 		rows = append(rows, types.MakeDatums(
 			node.ID,         // id
@@ -146,8 +150,9 @@ func (r *reader) readStorage() (rows [][]*types.Datum, err error) {
 			node.HostName,   // host_name
 			node.Version,    // version
 			node.OnlineTime, // online_time
-			node.GRPCPort,   // grpc
-			node.HTTPPort,   // http
+			time.Duration((now-node.OnlineTime)*1000_000), // uptime
+			node.GRPCPort, // grpc
+			node.HTTPPort, // http
 		))
 	}
 	return
