@@ -119,6 +119,8 @@ func appendColumn(row table.Row, colType types.DataType, col any, index int) {
 			row[index] = val
 		case int64:
 			row[index] = timeutil.FormatTimestamp(val, timeutil.DataTimeFormat2)
+		case float64:
+			row[index] = timeutil.FormatTimestamp(int64(val), timeutil.DataTimeFormat2)
 		}
 	}
 }

@@ -10,7 +10,6 @@ import (
 	commonConstants "github.com/lindb/common/constants"
 	"github.com/lindb/common/pkg/encoding"
 	"github.com/lindb/common/pkg/logger"
-	"github.com/lindb/common/pkg/timeutil"
 	"github.com/samber/lo"
 
 	"github.com/lindb/lindb/constants"
@@ -114,12 +113,12 @@ func (r *reader) readEnv(predicate *predicate) (rows [][]*types.Datum, err error
 func (r *reader) readMaster() (rows [][]*types.Datum, err error) {
 	master := r.metadataMgr.GetMaster()
 	rows = append(rows, types.MakeDatums(
-		master.Node.HostIP,   // host_ip
-		master.Node.HostName, // host_name
-		master.Node.HTTPPort, // http
-		master.Node.Version,  // version
-		timeutil.FormatTimestamp(master.Node.OnlineTime, timeutil.DataTimeFormat2), // online_time
-		timeutil.FormatTimestamp(master.ElectTime, timeutil.DataTimeFormat2),       // elect_time
+		master.Node.HostIP,     // host_ip
+		master.Node.HostName,   // host_name
+		master.Node.HTTPPort,   // http
+		master.Node.Version,    // version
+		master.Node.OnlineTime, // online_time
+		master.ElectTime,       // elect_time
 	))
 	return
 }
@@ -128,12 +127,12 @@ func (r *reader) readBroker() (rows [][]*types.Datum, err error) {
 	nodes := r.metadataMgr.GetBrokerNodes()
 	for _, node := range nodes {
 		rows = append(rows, types.MakeDatums(
-			node.HostIP,   // host_ip
-			node.HostName, // host_name
-			node.Version,  // version
-			timeutil.FormatTimestamp(node.OnlineTime, timeutil.DataTimeFormat2), // online_time
-			node.GRPCPort, // grpc
-			node.HTTPPort, // http
+			node.HostIP,     // host_ip
+			node.HostName,   // host_name
+			node.Version,    // version
+			node.OnlineTime, // online_time
+			node.GRPCPort,   // grpc
+			node.HTTPPort,   // http
 		))
 	}
 	return
@@ -143,13 +142,13 @@ func (r *reader) readStorage() (rows [][]*types.Datum, err error) {
 	nodes := r.metadataMgr.GetStorageNodes()
 	for _, node := range nodes {
 		rows = append(rows, types.MakeDatums(
-			node.ID,       // id
-			node.HostIP,   // host_ip
-			node.HostName, // host_name
-			node.Version,  // version
-			timeutil.FormatTimestamp(node.OnlineTime, timeutil.DataTimeFormat2), // online_time
-			node.GRPCPort, // grpc
-			node.HTTPPort, // http
+			node.ID,         // id
+			node.HostIP,     // host_ip
+			node.HostName,   // host_name
+			node.Version,    // version
+			node.OnlineTime, // online_time
+			node.GRPCPort,   // grpc
+			node.HTTPPort,   // http
 		))
 	}
 	return
@@ -282,8 +281,9 @@ func (r *reader) readMetrics(predicate *predicate) (rows [][]*types.Datum, err e
 						role.role, // role
 						name,      // name
 						string(encoding.JSONMarshal(metric.Tags)), // tags
-						field.Type,  // type
-						field.Value, // value
+						field.Name,  // field name
+						field.Type,  // field type
+						field.Value, // field value
 					))
 				}
 			}

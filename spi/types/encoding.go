@@ -1,6 +1,8 @@
 package types
 
 import (
+	"time"
+
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/lindb/lindb/pkg/encoding"
@@ -14,4 +16,5 @@ func init() {
 	encoding.RegisterNodeType(String(""))
 	encoding.RegisterNodeType(Float(0))
 	encoding.RegisterNodeType(Int(0))
+	encoding.RegisterNodeType(time.Time{})
 }

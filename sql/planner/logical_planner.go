@@ -72,6 +72,10 @@ func (p *LogicalPlanner) createOutputPlan(plan *RelationPlan) planpkg.PlanNode {
 	outputDescriptor := analysis.GetOutputDescriptor(analysis.GetRoot())
 	for i := range outputDescriptor.Fields {
 		field := outputDescriptor.Fields[i]
+		if field.Hidden {
+			// ignore hidden column
+			continue
+		}
 		name := field.Name
 		if name == "" {
 			name = fmt.Sprintf("_col%d", i)

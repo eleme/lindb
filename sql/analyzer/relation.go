@@ -22,15 +22,19 @@ type Relation struct {
 
 	// cannot use field name, field name is empty when select item isn't Identifier/Dereference
 	FieldIndexes map[*tree.Field]tree.FieldIndex
+
+	fieldsMap map[tree.FieldIndex]*tree.Field
 }
 
 func NewRelation(fields []*tree.Field) *Relation {
 	rt := &Relation{
 		Fields:       fields,
 		FieldIndexes: make(map[*tree.Field]tree.FieldIndex),
+		fieldsMap:    make(map[tree.FieldIndex]*tree.Field),
 	}
 	for _, f := range fields {
 		rt.FieldIndexes[f] = f.Index
+		rt.fieldsMap[f.Index] = f
 	}
 	fmt.Printf("new relation fields=%v\n", rt.FieldIndexes)
 	return rt
@@ -65,7 +69,7 @@ func (r *Relation) joinWith(other *Relation) *Relation {
 }
 
 func (r *Relation) getFieldByIndex(fieldIndex tree.FieldIndex) *tree.Field {
-	return r.Fields[fieldIndex]
+	return r.fieldsMap[fieldIndex]
 }
 
 func (r *Relation) resolveFields(name *tree.QualifiedName) (result []*tree.Field) {

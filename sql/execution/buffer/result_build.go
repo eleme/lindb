@@ -53,7 +53,7 @@ func (rsb *ResultSetBuild) Process() {
 				case types.DTTimeSeries:
 					columns[i] = row.GetTimeSeries(i)
 				case types.DTTimestamp:
-					columns[i] = row.GetTimestamp(i)
+					columns[i] = row.GetTimestamp(i).UnixMilli()
 				case types.DTDuration:
 					columns[i] = row.GetDuration(i)
 				default:

@@ -390,10 +390,7 @@ func (v *StatementVisitor) analyzeAllColumnsFromTable(allColumns *tree.AllColumn
 	scope *Scope, outputExpressions []tree.Expression, selectExpressions []*SelectExpression,
 	relationType *Relation, relationAlias *tree.QualifiedName,
 ) (outputs []tree.Expression, selects []*SelectExpression) {
-	// ignore hidden column
-	fields := lo.Filter(relationType.Fields, func(item *tree.Field, index int) bool {
-		return !item.Hidden
-	})
+	fields := relationType.Fields
 	for _, field := range fields {
 		fieldRef := &tree.FieldReference{
 			BaseNode: tree.BaseNode{
