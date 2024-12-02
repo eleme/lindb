@@ -40,7 +40,7 @@ func init() {
 	}
 	StateMachinePaths[constants.ShardAssignment] = models.StateMachineInfo{
 		Path:    constants.ShardAssignmentPath,
-		Comment: "Database shard assignment.",
+		Comment: "Database shard assignment",
 		CreateState: func() interface{} {
 			return &models.ShardAssignment{}
 		},

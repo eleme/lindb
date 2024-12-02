@@ -21,4 +21,7 @@ const (
 	TableNamespaces      = "namespaces"
 	TableTableNames      = "table_names"
 	TableColumns         = "columns"
+
+	TableFunctions = "functions"
+	TableSnippets  = "snippets"
 )

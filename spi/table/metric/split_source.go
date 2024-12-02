@@ -68,7 +68,7 @@ func (msp *SplitSourceProvider) buildTableScan(ctx context.Context, table spi.Ta
 	var fields field.Metas
 	lo.ForEach(outputColumns, func(column types.ColumnMetadata, index int) {
 		if fieldMeta, ok := lo.Find(schema.Fields, func(fieldMeta field.Meta) bool {
-			return column.Name == fieldMeta.Name.String() && column.DataType == types.DTString
+			return column.Name == fieldMeta.Name.String() && column.DataType != types.DTString
 		}); ok {
 			fields = append(fields, fieldMeta)
 		}
