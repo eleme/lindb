@@ -88,7 +88,9 @@ func (m *brokerMetadataManager) GetPartitions(database, ns, table string) (map[m
 			constants.TableTableNames,
 			constants.TableMetadataTypes,
 			constants.TableMetadatas,
-			constants.TableColumns:
+			constants.TableColumns,
+			constants.TableFunctions,
+			constants.TableSnippets:
 			partitions = map[models.InternalNode][]int{
 				{IP: currentNode.HostIP, Port: currentNode.GRPCPort}: {},
 			}

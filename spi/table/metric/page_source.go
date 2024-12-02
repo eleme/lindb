@@ -194,6 +194,7 @@ func (mps *PageSource) GetNextPage() *types.Page {
 		mps.table.IntervalRatio, mps.table.TimeRange, dataLoadCtx.AggregatorSpecs)
 	// TODO:
 	if dataLoadCtx.IsMultiField {
+		// FIXME:
 		fmt.Println(dataLoadCtx.WithoutGroupingSeriesAgg)
 		reduceAgg.Aggregate(dataLoadCtx.WithoutGroupingSeriesAgg.Aggregators.ResultSet(""))
 	} else {
@@ -208,7 +209,9 @@ func (mps *PageSource) GetNextPage() *types.Page {
 		}
 	}
 	// TODO: remove it?
-	mps.split.tableScan.grouping.CollectTagValues()
+	if mps.split.tableScan.grouping != nil {
+		mps.split.tableScan.grouping.CollectTagValues()
+	}
 
 	rs := reduceAgg.ResultSet()
 	return mps.buildOutputPage(rs)

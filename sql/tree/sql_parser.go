@@ -19,6 +19,10 @@ func GetParser() *SQLParser {
 	return &SQLParser{}
 }
 
+type MyErrorListener struct {
+	*antlr.DefaultErrorListener
+}
+
 func (p *SQLParser) CreateStatement(sql string, idAllocator *NodeIDAllocator) (stmt Statement, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -45,7 +49,7 @@ func (p *SQLParser) CreateStatement(sql string, idAllocator *NodeIDAllocator) (s
 	parser := grammar.NewSQLParser(tokens)
 	parser.BuildParseTrees = true
 	parser.RemoveErrorListeners()
-	// parser.AddErrorListener(errorHandle)
+	parser.AddErrorListener(&MyErrorListener{})
 	// first, try parsing with potentially faster SLL mode
 	parser.GetInterpreter().SetPredictionMode(antlr.PredictionModeSLL)
 	// TODO: fail to LL mode

@@ -68,6 +68,17 @@ var (
 	}
 )
 
+func TestSQLParser_QueryStatement_Error(t *testing.T) {
+	defer func() {
+		newNodeLocation = NewNodeLocation
+	}()
+	newNodeLocation = func(line, column int) *NodeLocation {
+		return nil
+	}
+	parser := GetParser()
+	parser.CreateStatement("s", NewNodeIDAllocator())
+}
+
 func TestSQLParser_QueryStatement(t *testing.T) {
 	defer func() {
 		newNodeLocation = NewNodeLocation

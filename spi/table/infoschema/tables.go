@@ -173,6 +173,19 @@ var (
 			{Name: "data", DataType: types.DTString},
 		},
 	}
+	functionsSchema = &types.TableSchema{
+		Columns: []types.ColumnMetadata{
+			{Name: "name", DataType: types.DTString},
+			{Name: "template", DataType: types.DTString},
+		},
+	}
+	snippetsSchema = &types.TableSchema{
+		Columns: []types.ColumnMetadata{
+			{Name: "name", DataType: types.DTString},
+			{Name: "template", DataType: types.DTString},
+		},
+	}
+
 	// tables represents the schema of tables.
 	tables = map[string]*types.TableSchema{
 		constants.TableEnv:             envSchema,
@@ -189,5 +202,7 @@ var (
 		constants.TableColumns:         columnsSchema,
 		constants.TableMetadataTypes:   metadataTypesSchema,
 		constants.TableMetadatas:       metadatasSchema,
+		constants.TableFunctions:       functionsSchema,
+		constants.TableSnippets:        snippetsSchema,
 	}
 )

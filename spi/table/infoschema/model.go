@@ -45,3 +45,15 @@ type InfoSplit struct {
 	predicate tree.Expression
 	colIdxs   []int
 }
+
+type Snippet struct {
+	Name     string `yaml:"name"`
+	Template string `yaml:"template"`
+	Type     string `yaml:"type"`
+}
+
+type Function struct {
+	Name     string `yaml:"name"`
+	Template string `yaml:"template"`
+	Type     string `yaml:"type"`
+}

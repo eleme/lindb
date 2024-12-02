@@ -1,0 +1,3 @@
+- name: Last N minutes
+  template: DATE_ADD(NOW(), INTERVAL ${1} MINUTE)
+  type: timestamp

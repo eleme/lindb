@@ -24,7 +24,7 @@ type addSubDateFunc struct {
 }
 
 func (n *addSubDateFunc) EvalTime(ctx EvalContext, row types.Row) (val time.Time, isNull bool, err error) {
-	// TODO: check error
+	// TODO: check error/now func
 	tsStr, _, _ := n.args[0].EvalString(ctx, row)
 	format := timeutil.DataTimeFormat2
 	timestamp, err := timeutil.ParseTimestamp(tsStr, format)

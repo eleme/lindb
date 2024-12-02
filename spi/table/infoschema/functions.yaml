@@ -1,0 +1,6 @@
+- name: NOW
+  template: NOW()
+  type: timestamp
+- name: STR_TO_DATE
+  template: STR_TO_DATE('${1}', 'YYYY-MM-DD HH:mm:ss')
+  type: timestamp

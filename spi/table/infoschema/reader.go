@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -12,6 +15,7 @@ import (
 	"github.com/lindb/common/pkg/encoding"
 	"github.com/lindb/common/pkg/logger"
 	"github.com/samber/lo"
+	"gopkg.in/yaml.v3"
 
 	"github.com/lindb/lindb/constants"
 	"github.com/lindb/lindb/coordinator/broker"
@@ -84,6 +88,10 @@ func (r *reader) ReadData(ctx context.Context, table string, expression tree.Exp
 		rows, err = r.readTableNames(predicate)
 	case constants.TableColumns:
 		rows, err = r.readColumns(predicate)
+	case constants.TableFunctions:
+		rows, err = r.readFunctions()
+	case constants.TableSnippets:
+		rows, err = r.readSnippets()
 	}
 	return
 }
@@ -437,6 +445,51 @@ func (r *reader) readColumns(predicate *predicate) (rows [][]*types.Datum, err e
 		))
 	}
 	return
+}
+
+func (r *reader) readFunctions() (rows [][]*types.Datum, err error) {
+	data, err := os.ReadFile(filepath.Join(getCurrentDir(), "functions.yaml"))
+	if err != nil {
+		return nil, err
+	}
+
+	var functions []Function
+	err = yaml.Unmarshal(data, &functions)
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range functions {
+		rows = append(rows, types.MakeDatums(
+			f.Name,     // name
+			f.Template, // template
+		))
+	}
+	return
+}
+
+func (r *reader) readSnippets() (rows [][]*types.Datum, err error) {
+	data, err := os.ReadFile(filepath.Join(getCurrentDir(), "snippets.yaml"))
+	if err != nil {
+		return nil, err
+	}
+
+	var snippets []Snippet
+	err = yaml.Unmarshal(data, &snippets)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range snippets {
+		rows = append(rows, types.MakeDatums(
+			s.Name,     // name
+			s.Template, // template
+		))
+	}
+	return
+}
+
+func getCurrentDir() string {
+	_, dir, _, _ := runtime.Caller(0)
+	return filepath.Dir(dir)
 }
 
 type predicate struct {
