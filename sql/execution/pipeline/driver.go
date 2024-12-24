@@ -62,6 +62,7 @@ func (d *Driver) Process() {
 		current := d.operators[i]
 		next := d.operators[i+1]
 		page := current.GetOutput()
+		// FIXME: remove it
 		// if page != nil {
 		// 	next.AddInput(page)
 		// }

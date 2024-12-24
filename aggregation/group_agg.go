@@ -18,6 +18,8 @@
 package aggregation
 
 import (
+	"fmt"
+
 	"github.com/lindb/lindb/pkg/timeutil"
 	"github.com/lindb/lindb/series"
 	"github.com/lindb/lindb/series/field"
@@ -91,6 +93,7 @@ func (ga *groupingAggregator) Aggregate(it series.GroupedIterator) {
 			if fieldIt == nil {
 				continue
 			}
+			fmt.Printf("grouping agg next...==%v\n", startTime)
 			aggregator := sAgg.getAggregator(startTime)
 			aggregator.Aggregate(fieldIt)
 		}
@@ -139,6 +142,7 @@ func (ga *groupingAggregator) Fields() []field.Name {
 
 // getAggregator returns the time series aggregator by the tag of time series.
 func (ga *groupingAggregator) getAggregator(tags string) (agg FieldAggregates) {
+	fmt.Printf("get tags aggregator==%v\n", tags)
 	// get series aggregator
 	if agg0, ok := ga.aggregates[tags]; ok {
 		return agg0

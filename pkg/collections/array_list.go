@@ -22,6 +22,7 @@ const blockSize = 8
 // FloatArray encapsulates methods for using the float array
 // support mark pos if it has value
 type FloatArray struct {
+	// TODO: remove it/bitset
 	it       *FloatArrayIterator
 	marks    []uint8
 	values   []float64
@@ -41,6 +42,11 @@ func NewFloatArray(capacity int) *FloatArray {
 		values:   make([]float64, capacity),
 		marks:    make([]uint8, markLen),
 	}
+}
+
+// Values returns the values of array.
+func (f *FloatArray) Values() []float64 {
+	return f.values
 }
 
 // HasValue returns if has value with pos

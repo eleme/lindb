@@ -9,44 +9,30 @@ import (
 )
 
 type Pipeline struct {
-	taskCtx     *context.TaskContext
-	splitSource spi.SplitSource
-	driverFct   *DriverFactory
+	taskCtx   *context.TaskContext
+	driverFct *DriverFactory
+
+	connector spi.PageSourceConnector
 }
 
-func NewPipeline(taskCtx *context.TaskContext, splitSource spi.SplitSource, driverFct *DriverFactory) *Pipeline {
+func NewPipeline(taskCtx *context.TaskContext, driverFct *DriverFactory) *Pipeline {
 	return &Pipeline{
-		taskCtx:     taskCtx,
-		splitSource: splitSource,
-		driverFct:   driverFct,
+		taskCtx:   taskCtx,
+		driverFct: driverFct,
 	}
 }
 
 func (p *Pipeline) Run() {
-	if p.splitSource == nil {
-		// source from exchange(local/remote)
-		driver := p.driverFct.CreateDriver()
-		sourceOperator := driver.GetSourceOperator()
-		fmt.Printf("run driver====%v,%d,%s\n", sourceOperator, sourceOperator.GetSourceID(), reflect.TypeOf(sourceOperator))
-		if sourceOperator != nil {
-			fmt.Println(p.taskCtx.TaskID)
-			// if driver has source operator, register it
-			DriverManager.RegisterSourceOperator(p.taskCtx.TaskID, sourceOperator)
-		}
-
-		driver.Process()
-	} else {
-		// source from storage
-		p.splitSource.Prepare()
-		driver := p.driverFct.CreateDriver()
-
-		for p.splitSource.HasNext() {
-			split := p.splitSource.Next()
-
-			if split != nil {
-				driver.AddSplit(split)
-				driver.Process()
-			}
-		}
+	// TODO:remove it?
+	// source from exchange(local/remote)
+	driver := p.driverFct.CreateDriver()
+	sourceOperator := driver.GetSourceOperator()
+	fmt.Printf("run driver====%v,%d,%s\n", sourceOperator, sourceOperator.GetSourceID(), reflect.TypeOf(sourceOperator))
+	if sourceOperator != nil {
+		fmt.Println(p.taskCtx.TaskID)
+		// if driver has source operator, register it
+		DriverManager.RegisterSourceOperator(p.taskCtx.TaskID, sourceOperator)
 	}
+
+	driver.Process()
 }

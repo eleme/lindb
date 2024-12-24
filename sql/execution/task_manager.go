@@ -97,7 +97,7 @@ func (mgr *taskManager) dispatchTask() {
 				fmt.Printf("task exec result\n")
 			}, func(err error) {
 				fmt.Printf("task exec fail %v\n", err)
-				output.AddPage(nil)
+				output.SetError(err)
 			}))
 		}
 	}

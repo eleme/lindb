@@ -460,13 +460,17 @@ func (f *dataFamily) memoryFilter(ctx *flow.MetricScanContext) (resultSet []flow
 	memFilter := func(memDB memdb.MemoryDatabase) error {
 		rs, err := memDB.Filter(ctx)
 		if err != nil {
+			fmt.Printf("mem db error=%v\n", err)
 			return err
 		}
 		resultSet = append(resultSet, rs...)
+		fmt.Println("found mem data", len(resultSet))
 		return nil
 	}
+
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
+
 	if f.mutableMemDB != nil {
 		if err := memFilter(f.mutableMemDB); err != nil {
 			return nil, err
@@ -494,6 +498,7 @@ func (f *dataFamily) fileFilter(ctx *flow.MetricScanContext) (resultSet []flow.F
 		engineLogger.Error("filter data family error", logger.Error(err))
 		return nil, err
 	}
+	querySlotRange := ctx.CalcSourceSlotRange(f.familyTime)
 	fmt.Printf("find reader =%v,%v\n", readers, metricKey)
 	var metricReaders []metricsdata.MetricReader
 	for _, reader := range readers {
@@ -508,22 +513,18 @@ func (f *dataFamily) fileFilter(ctx *flow.MetricScanContext) (resultSet []flow.F
 			fmt.Printf("new reader file=%v\n", err)
 			return nil, err
 		}
-		slotRange := r.GetTimeRange()
-		storageTimeRange := timeutil.TimeRange{
-			Start: timeutil.CalcTimestamp(f.familyTime, int(slotRange.Start), f.interval),
-			End:   timeutil.CalcTimestamp(f.familyTime, int(slotRange.End), f.interval),
-		}
-		if storageTimeRange.Overlap(ctx.TimeRange) {
+		storageTimeRange := r.GetTimeRange()
+		if storageTimeRange.Overlap(querySlotRange) {
 			metricReaders = append(metricReaders, r)
 		} else {
-			fmt.Println("file time range out...")
+			fmt.Printf("file time range out...,%v,%v\n", storageTimeRange, ctx.TimeRange)
 		}
 	}
 	if len(metricReaders) == 0 {
 		fmt.Println("no file found")
 		return nil, nil
 	}
-	filter := newFilterFunc(f.timeRange.Start, snapShot, metricReaders)
+	filter := newFilterFunc(f.timeRange.Start, f.interval, querySlotRange, snapShot, metricReaders)
 	return filter.Filter(ctx.SeriesIDs, ctx.Fields)
 }
 

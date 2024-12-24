@@ -23,7 +23,8 @@ func NewSplitSourceProvider(metadataMgr meta.MetadataManager) spi.SplitSourcePro
 }
 
 func (s *SplitSourceProvider) CreateSplitSources(ctx context.Context, table spi.TableHandle, partitions []int,
-	outputColumns []types.ColumnMetadata, predicate tree.Expression,
+	outputColumns []types.ColumnMetadata, assignments []*spi.ColumnAssignment,
+	predicate tree.Expression,
 ) (splits []spi.SplitSource) {
 	infoTable, ok := table.(*TableHandle)
 	if !ok {
@@ -47,9 +48,10 @@ func (s *SplitSourceProvider) CreateSplitSources(ctx context.Context, table spi.
 	return []spi.SplitSource{
 		&SplitSource{
 			split: &InfoSplit{
-				table:     infoTable.Table,
-				predicate: predicate,
-				colIdxs:   colIdxs,
+				table:         infoTable.Table,
+				predicate:     predicate,
+				outputColumns: outputColumns,
+				colIdxs:       colIdxs,
 			},
 		},
 	}

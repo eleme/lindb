@@ -158,6 +158,7 @@ func executor(in string) {
 func executeAndPrint(param models.ExecuteParam) {
 	defer func() {
 		if err0 := recover(); err0 != nil {
+			// TODO: add log to file
 			printErr(fmt.Errorf("query error: %v", err0))
 		}
 	}()

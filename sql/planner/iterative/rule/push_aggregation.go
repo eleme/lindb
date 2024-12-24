@@ -1,6 +1,8 @@
 package rule
 
 import (
+	"fmt"
+
 	"github.com/lindb/lindb/spi"
 	"github.com/lindb/lindb/sql/planner/iterative"
 	"github.com/lindb/lindb/sql/planner/plan"
@@ -134,6 +136,7 @@ func (rule *PushAggregationIntoTableScan) pushAggregationIntoTableScan(context *
 		context.PlannerContext.AnalyzerContext.Analysis.GetTableMetadata(tableScan.Table.String()),
 		columnAggregations,
 	)
+	fmt.Printf("agg columns aggignments: %v\n", result)
 	if result == nil || len(result.ColumnAssignments) == 0 {
 		return nil
 	}

@@ -40,6 +40,10 @@ func (l *LocalExchangeOperator) GetOutput() *types.Page {
 	return l.page
 }
 
+func (l *LocalExchangeOperator) GetOutbound() <-chan *types.Page {
+	return nil
+}
+
 // IsFinished implements operator.Operator.
 func (l *LocalExchangeOperator) IsFinished() bool {
 	return true

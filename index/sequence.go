@@ -99,12 +99,12 @@ func (s *Sequence) GenMetricNameSeq() uint32 {
 
 // GenTagKeySeq generates sequence for tag key.
 func (s *Sequence) GenTagKeySeq() uint32 {
-	return s.tagKey.Inc() - 1
+	return s.tagKey.Inc() - 1 // start with 0
 }
 
 // GenTagValueSeq generates sequence for tag value.
 func (s *Sequence) GenTagValueSeq() uint32 {
-	return s.tagValue.Inc() - 1
+	return s.tagValue.Inc() // start with 1 TODO: add test
 }
 
 // Sync persists the sequence data.

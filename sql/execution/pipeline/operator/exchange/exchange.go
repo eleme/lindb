@@ -88,6 +88,9 @@ func (op *ExchangeOperator) AddInput(page *types.Page) {
 // GetOutput implements Operator
 func (op *ExchangeOperator) GetOutput() *types.Page {
 	for split := range op.splits {
+		if split.Error != "" {
+			panic(split.Error)
+		}
 		page := split.Page
 		if page == nil {
 			fmt.Println("page nil")
@@ -105,6 +108,10 @@ func (op *ExchangeOperator) GetOutput() *types.Page {
 		op.mergedPage.Columns = page.Columns
 	}
 	return op.mergedPage
+}
+
+func (op *ExchangeOperator) GetOutbound() <-chan *types.Page {
+	return nil
 }
 
 func (op *ExchangeOperator) Finish() {

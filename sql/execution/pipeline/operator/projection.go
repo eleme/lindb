@@ -26,6 +26,7 @@ func (fct *ProjectionOperatorFactory) CreateOperator(ctx context.Context) Operat
 	return NewProjectionOperator(ctx, fct.project, fct.sourceLayout)
 }
 
+// Projection means choosing which columns (or expressions) the query shall return.
 type ProjectionOperator struct {
 	ctx     context.Context
 	exprCtx expression.EvalContext
@@ -49,6 +50,10 @@ func (h *ProjectionOperator) AddInput(page *types.Page) {
 
 // Finish implements Operator.
 func (h *ProjectionOperator) Finish() {
+}
+
+func (h *ProjectionOperator) GetOutbound() <-chan *types.Page {
+	return nil
 }
 
 // GetOutput implements Operator.

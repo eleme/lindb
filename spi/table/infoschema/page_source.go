@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lindb/common/pkg/encoding"
-
 	"github.com/lindb/lindb/spi"
 	"github.com/lindb/lindb/spi/types"
 )
@@ -22,21 +20,17 @@ func NewPageSourceProvider(reader Reader) spi.PageSourceProvider {
 }
 
 // CreatePageSource implements spi.PageSourceProvider.
-func (p *PageSourceProvider) CreatePageSource(ctx context.Context, table spi.TableHandle,
-	outputs []types.ColumnMetadata, assignments []*spi.ColumnAssignment,
-) spi.PageSource {
+func (p *PageSourceProvider) CreatePageSource(ctx context.Context) spi.PageSource {
 	return &PageSource{
-		ctx:     ctx,
-		outputs: outputs,
-		reader:  p.reader,
+		ctx:    ctx,
+		reader: p.reader,
 	}
 }
 
 type PageSource struct {
-	ctx     context.Context
-	reader  Reader
-	split   *InfoSplit
-	outputs []types.ColumnMetadata
+	ctx    context.Context
+	reader Reader
+	split  *InfoSplit
 }
 
 // AddSplit implements spi.PageSource.
@@ -56,7 +50,7 @@ func (p *PageSource) GetNextPage() *types.Page {
 	page := types.NewPage()
 	var columns []*types.Column
 	outputs := make(map[string]int)
-	for idx, output := range p.outputs {
+	for idx, output := range p.split.outputColumns {
 		column := types.NewColumn()
 		page.AppendColumn(output, column)
 		columns = append(columns, column)
@@ -64,7 +58,7 @@ func (p *PageSource) GetNextPage() *types.Page {
 	}
 	for _, row := range rows {
 		for idx, col := range columns {
-			switch p.outputs[idx].DataType {
+			switch p.split.outputColumns[idx].DataType {
 			case types.DTString:
 				col.AppendString(row[p.split.colIdxs[idx]].String())
 			case types.DTFloat:
@@ -78,6 +72,5 @@ func (p *PageSource) GetNextPage() *types.Page {
 			}
 		}
 	}
-	fmt.Printf("ouputs=%v,index=%v,page=%v\n", p.outputs, p.split.colIdxs, string(encoding.JSONMarshal(page)))
 	return page
 }

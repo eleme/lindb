@@ -60,6 +60,7 @@ type ResultSetOutputOperator struct {
 // AddInput implements operator.Operator
 func (op *ResultSetOutputOperator) AddInput(page *types.Page) {
 	if page == nil || page.NumRows() == 0 {
+		fmt.Printf("add empty page====%v\n", string(encoding.JSONMarshal(page)))
 		return
 	}
 	if op.rebuildPage {
@@ -88,6 +89,10 @@ func (op *ResultSetOutputOperator) Finish() {
 
 // GetOutput implements operator.Operator
 func (op *ResultSetOutputOperator) GetOutput() *types.Page {
+	return nil
+}
+
+func (op *ResultSetOutputOperator) GetOutbound() <-chan *types.Page {
 	return nil
 }
 

@@ -27,6 +27,24 @@ func NewPartitionOutputBuffer(taskID model.TaskID, fragment *plan.PlanFragment) 
 
 // AddPage implements OutputBuffer
 func (output *PartitionOutputBuffer) AddPage(page *types.Page) {
+	output.sendResultSet(&model.TaskResultSet{
+		TaskID: output.taskID,
+		NodeID: *output.fragment.RemoteParentNodeID,
+		Page:   page,
+		NoMore: true, // FIXME: set nomore
+	})
+}
+
+func (output *PartitionOutputBuffer) SetError(err error) {
+	output.sendResultSet(&model.TaskResultSet{
+		TaskID: output.taskID,
+		NodeID: *output.fragment.RemoteParentNodeID,
+		NoMore: true, // FIXME: set nomore
+		Error:  err.Error(),
+	})
+}
+
+func (output *PartitionOutputBuffer) sendResultSet(rs *model.TaskResultSet) {
 	// TODO: conn pool?
 	receiver := output.fragment.Receivers[0]
 	conn, err := grpc.Dial(receiver.Address(), grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -36,13 +54,9 @@ func (output *PartitionOutputBuffer) AddPage(page *types.Page) {
 	defer conn.Close()
 
 	client := protoCommandV1.NewResultSetServiceClient(conn)
+	// TODO: handle resp/error?
 	_, err = client.ResultSet(context.TODO(), &protoCommandV1.ResultSetRequest{
-		Payload: encoding.JSONMarshal(&model.TaskResultSet{
-			TaskID: output.taskID,
-			NodeID: *output.fragment.RemoteParentNodeID,
-			Page:   page,
-			NoMore: true, // FIXME: set nomore
-		}),
+		Payload: encoding.JSONMarshal(rs),
 	})
 	if err != nil {
 		panic(err)

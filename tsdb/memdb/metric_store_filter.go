@@ -34,7 +34,7 @@ import (
 type fieldEntry struct {
 	pageBuf     DataPointBuffer
 	compressBuf CompressStore // time series compress buffer
-	field       field.Meta
+	field       field.Meta    // fields of query input
 
 	buf []byte // time series current write buffer
 }
@@ -72,18 +72,19 @@ func (fe *fieldEntry) getPage(memTimeSeriesID uint32) ([]byte, bool) {
 // Filter filters the data based on fields/seriesIDs/family time,
 // if it finds data then returns the FilterResultSet, else returns constants.ErrFieldNotFound
 func (md *memoryDatabase) filter(metricScanCtx *flow.MetricScanContext,
-	memMetricID uint64, slotRange *timeutil.SlotRange,
+	memMetricID uint64, slotRange timeutil.SlotRange,
 	timeSeriesIndex TimeSeriesIndex,
 ) ([]flow.FilterResultSet, error) {
 	mStore, ok := md.indexDB.GetMetadataDatabase().GetMetricMeta(memMetricID)
 	if !ok {
 		// metric meta not found
+		fmt.Println("metric meta not found")
 		return nil, nil
 	}
 	var fieldEntries []*fieldEntry
 	if metricScanCtx.Fields.Len() > 0 {
 		fields := metricScanCtx.Fields.Clone()
-		// NOTE: must re-stort by field name, if not cannot find field from query fields
+		// NOTE: must re-stort by field name, if not, cannot find field from query fields
 		sort.Sort(fields)
 		// first need check query's fields is match store's fields, if not return.
 		foundFields := mStore.FindFields(fields)
@@ -117,10 +118,9 @@ func (md *memoryDatabase) filter(metricScanCtx *flow.MetricScanContext,
 		}
 	}
 
-	seriesIDs := metricScanCtx.SeriesIDsAfterFiltering
 	familyTime := md.FamilyTime()
 	// after and operator, query bitmap is sub of store bitmap
-	matchSeriesIDs := roaring.FastAnd(seriesIDs, timeSeriesIndex.TimeSeriesIDs())
+	matchSeriesIDs := roaring.FastAnd(metricScanCtx.SeriesIDs, timeSeriesIndex.TimeSeriesIDs())
 	if matchSeriesIDs.IsEmpty() {
 		// series id not found
 		return nil, fmt.Errorf("%w when Filter, familyTime: %d",
@@ -134,7 +134,6 @@ func (md *memoryDatabase) filter(metricScanCtx *flow.MetricScanContext,
 			familyTime:      familyTime,
 			fields:          fieldEntries,
 			slotRange:       slotRange,
-			storeSeriesIDs:  seriesIDs,
 			seriesIDs:       matchSeriesIDs,
 		},
 	}, nil
@@ -144,11 +143,15 @@ func (md *memoryDatabase) filter(metricScanCtx *flow.MetricScanContext,
 type memFilterResultSet struct {
 	timeSeriesIndex TimeSeriesIndex
 	db              *memoryDatabase
-	slotRange       *timeutil.SlotRange
-	storeSeriesIDs  *roaring.Bitmap
-	seriesIDs       *roaring.Bitmap
+	slotRange       timeutil.SlotRange
+	seriesIDs       *roaring.Bitmap // series ids of match
 	fields          []*fieldEntry
 	familyTime      int64
+}
+
+// Interval returns the interval of memory storage.
+func (rs *memFilterResultSet) Interval() timeutil.Interval {
+	return rs.db.cfg.Interval
 }
 
 // Identifier identifies the source of result set from memory storage
@@ -168,7 +171,7 @@ func (rs *memFilterResultSet) FamilyTime() int64 {
 
 // SlotRange returns the slot range of storage.
 func (rs *memFilterResultSet) SlotRange() timeutil.SlotRange {
-	return *rs.slotRange
+	return rs.slotRange
 }
 
 // SeriesIDs returns the series ids which matches with query series ids
@@ -177,21 +180,27 @@ func (rs *memFilterResultSet) SeriesIDs() *roaring.Bitmap {
 }
 
 // Load loads the data from storage, then returns the memory storage metric scanner.
-func (rs *memFilterResultSet) Load(ctx *flow.DataLoadContext) flow.DataLoader {
+func (rs *memFilterResultSet) Load(seriesIDHighKey uint16, lowSeriesIDs roaring.Container) flow.DataLoader {
 	// 1. get high container index by the high key of series ID
-	highContainerIdx := rs.storeSeriesIDs.GetContainerIndex(ctx.SeriesIDHighKey)
+	highContainerIdx := rs.seriesIDs.GetContainerIndex(seriesIDHighKey)
 	if highContainerIdx < 0 {
 		// if high container index < 0(series ID not exist) return it
 		return nil
 	}
+
 	// 2. get low container include all low keys by the high container index, delete op will clean empty low container
-	lowContainer := rs.storeSeriesIDs.GetContainerAtIndex(highContainerIdx)
-	foundSeriesIDs := lowContainer.And(ctx.LowSeriesIDsContainer)
+	lowContainer := rs.seriesIDs.GetContainerAtIndex(highContainerIdx)
+	foundSeriesIDs := lowContainer.And(lowSeriesIDs)
 	if foundSeriesIDs.GetCardinality() == 0 {
 		return nil
 	}
+	seriesIDsFromStorage, memTimeSeriesIDs := rs.timeSeriesIndex.GetSeriesIDs(seriesIDHighKey)
+	if seriesIDsFromStorage == nil {
+		return nil
+	}
 	// must use lowContainer from store, because get series index based on container
-	return NewTimeSeriesLoader(rs.db, rs.timeSeriesIndex, ctx.SeriesIDHighKey, *rs.slotRange, rs.fields)
+	return NewTimeSeriesLoader(rs.db, rs.timeSeriesIndex, seriesIDsFromStorage,
+		memTimeSeriesIDs, rs.slotRange, rs.fields)
 }
 
 // Close release the resource during doing query operation.

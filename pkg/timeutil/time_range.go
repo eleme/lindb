@@ -75,6 +75,19 @@ func (sr *SlotRange) Union(o SlotRange) SlotRange {
 	return result
 }
 
+func (sr *SlotRange) Intersect(o SlotRange) SlotRange {
+	var result SlotRange
+	result.Start = sr.Start
+	if o.Start > sr.Start {
+		result.Start = o.Start
+	}
+	result.End = sr.End
+	if o.End < sr.End {
+		result.End = o.End
+	}
+	return result
+}
+
 // TimeRange represents time range with start/end timestamp.
 type TimeRange struct {
 	Start int64 `json:"start"`

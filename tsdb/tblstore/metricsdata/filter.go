@@ -18,8 +18,6 @@
 package metricsdata
 
 import (
-	"fmt"
-
 	"github.com/lindb/roaring"
 
 	"github.com/lindb/lindb/constants"
@@ -40,14 +38,20 @@ type Filter interface {
 // metricsDataFilter represents the sst file data filter
 type metricsDataFilter struct {
 	familyTime int64
+	slotRange  timeutil.SlotRange
+	interval   timeutil.Interval
 	snapshot   version.Snapshot
 	readers    []MetricReader
 }
 
 // NewFilter creates the sst file data filter
-func NewFilter(familyTime int64, snapshot version.Snapshot, readers []MetricReader) Filter {
+func NewFilter(familyTime int64, interval timeutil.Interval, slotRange timeutil.SlotRange,
+	snapshot version.Snapshot, readers []MetricReader,
+) Filter {
 	return &metricsDataFilter{
 		familyTime: familyTime,
+		slotRange:  slotRange,
+		interval:   interval,
 		snapshot:   snapshot,
 		readers:    readers,
 	}
@@ -62,21 +66,19 @@ func (f *metricsDataFilter) Filter(
 		if fields.Len() > 0 {
 			fieldMetas, _ := reader.GetFields().Intersects(fields)
 			if len(fieldMetas) == 0 {
-				fmt.Printf("field not found,fields=%v\n", fields)
 				// field not found
 				continue
 			}
 		}
 		// after and operator, query bitmap is sub of store bitmap
 		matchSeriesIDs := roaring.FastAnd(seriesIDs, reader.GetSeriesIDs())
-		fmt.Println(seriesIDs)
-		fmt.Println(reader.GetSeriesIDs())
 		if matchSeriesIDs.IsEmpty() {
 			// series ids not found
-			fmt.Println("series not found")
 			continue
 		}
-		rs = append(rs, newFileFilterResultSet(f.familyTime, matchSeriesIDs, reader, f.snapshot))
+		slotRnage := reader.GetTimeRange()
+		rs = append(rs, newFileFilterResultSet(f.familyTime, f.interval, (&slotRnage).Intersect(f.slotRange),
+			matchSeriesIDs, fields, reader, f.snapshot))
 	}
 	// not founds
 	if len(rs) == 0 {
@@ -88,24 +90,38 @@ func (f *metricsDataFilter) Filter(
 // fileFilterResultSet represents sst file metricReader for loading file data based on query condition
 type fileFilterResultSet struct {
 	snapshot   version.Snapshot
+	slotRange  timeutil.SlotRange
 	reader     MetricReader
 	familyTime int64
+	interval   timeutil.Interval
+	fields     field.Metas
 	seriesIDs  *roaring.Bitmap
 }
 
 // newFileFilterResultSet creates the file filter result set
 func newFileFilterResultSet(
 	familyTime int64,
+	interval timeutil.Interval,
+	slotRange timeutil.SlotRange,
 	seriesIDs *roaring.Bitmap,
+	fields field.Metas,
 	reader MetricReader,
 	snapshot version.Snapshot,
 ) flow.FilterResultSet {
 	return &fileFilterResultSet{
 		familyTime: familyTime,
-		reader:     reader,
+		interval:   interval,
+		slotRange:  slotRange,
 		seriesIDs:  seriesIDs,
+		fields:     fields,
+		reader:     reader,
 		snapshot:   snapshot,
 	}
+}
+
+// Interval returns the interval of file storage.
+func (f *fileFilterResultSet) Interval() timeutil.Interval {
+	return f.interval
 }
 
 // Identifier identifies the source of result set from kv store
@@ -125,12 +141,12 @@ func (f *fileFilterResultSet) FamilyTime() int64 {
 
 // SlotRange returns the slot range of storage.
 func (f *fileFilterResultSet) SlotRange() timeutil.SlotRange {
-	return f.reader.GetTimeRange()
+	return f.slotRange
 }
 
 // Load reads data from sst files, then returns the data file scanner.
-func (f *fileFilterResultSet) Load(ctx *flow.DataLoadContext) flow.DataLoader {
-	return f.reader.Load(ctx)
+func (f *fileFilterResultSet) Load(seriesIDHighKey uint16, lowSeriesIDs roaring.Container) flow.DataLoader {
+	return f.reader.Load(seriesIDHighKey, lowSeriesIDs, f.fields)
 }
 
 // Close release the resource during doing query operation.

@@ -6,4 +6,5 @@ import (
 
 type OutputBuffer interface {
 	AddPage(page *types.Page)
+	SetError(err error)
 }

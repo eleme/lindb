@@ -23,7 +23,6 @@ import (
 	"github.com/lindb/roaring"
 
 	"github.com/lindb/lindb/flow"
-	"github.com/lindb/lindb/pkg/encoding"
 	"github.com/lindb/lindb/pkg/imap"
 	"github.com/lindb/lindb/pkg/timeutil"
 	"github.com/lindb/lindb/tsdb/tblstore/metricsdata"
@@ -50,13 +49,8 @@ type TimeSeriesIndex interface {
 	GetTimeRange(familyCreateTime int64) (*timeutil.SlotRange, bool)
 	// ClearTimeRange clears family level time slot range.
 	ClearTimeRange(familyCreateTime int64)
-	// Load loads field data based search context and time series ids.
-	Load(
-		ctx *flow.DataLoadContext,
-		seriesIDHighKey uint16,
-		slotRange timeutil.SlotRange,
-		fields []*fieldEntry,
-	)
+
+	GetSeriesIDs(seriesIDHighKey uint16) (seriesIDs *flow.LowSeriesIDs, values []uint32)
 	// FlushMetricsDataTo flushes metric data.
 	FlushMetricsDataTo(
 		tableFlusher metricsdata.Flusher,
@@ -69,6 +63,8 @@ type TimeSeriesIndex interface {
 	ExpireTimeSeriesIDs(memTimeSeriesIDs *roaring.Bitmap, expiredTimestamp int64)
 	// GC clears expired time series ids.
 	GC(gcTimestamp int64)
+
+	WithLock() (release func())
 }
 
 // timeSeriesIndex implements TimeSeriesIndex interface.
@@ -235,13 +231,12 @@ func (idx *timeSeriesIndex) GetTimeRange(familyCreateTime int64) (*timeutil.Slot
 	return slotRange.(*timeutil.SlotRange), true
 }
 
-// Load loads field data based search context and time series ids.
-func (idx *timeSeriesIndex) Load(
-	ctx *flow.DataLoadContext,
-	seriesIDHighKey uint16,
-	slotRange timeutil.SlotRange,
-	fields []*fieldEntry,
-) {
+func (idx *timeSeriesIndex) WithLock() (release func()) {
+	idx.lock.Lock()
+	return idx.lock.Unlock
+}
+
+func (idx *timeSeriesIndex) GetSeriesIDs(seriesIDHighKey uint16) (seriesIDs *flow.LowSeriesIDs, values []uint32) {
 	idx.lock.RLock()
 	defer idx.lock.RUnlock()
 
@@ -251,28 +246,10 @@ func (idx *timeSeriesIndex) Load(
 		return
 	}
 	lowContainer := idx.ids.Keys().GetContainerAtIndex(highContainerIdx)
+	// FIXME: copy values?
 	memTimeSeriesIDs := idx.ids.Values()[highContainerIdx]
 
-	ctx.IterateLowSeriesIDs(lowContainer, func(seriesIdxFromQuery uint16, seriesIdxFromStorage int) {
-		memTimeSeriesID := memTimeSeriesIDs[seriesIdxFromStorage]
-		for _, fm := range fields {
-			// read field compress data
-			compress := fm.getCompressBuf(memTimeSeriesID)
-			var tsd *encoding.TSDDecoder
-			size := len(compress)
-			if size > 0 {
-				tsd = ctx.Decoder
-				tsd.Reset(compress)
-				ctx.DownSampling(slotRange, seriesIdxFromQuery, int(fm.field.Index), tsd)
-			}
-			// read field current write buffer
-			buf, ok := fm.getPage(memTimeSeriesID)
-			if ok {
-				fm.Reset(buf)
-				ctx.DownSampling(slotRange, seriesIdxFromQuery, int(fm.field.Index), fm)
-			}
-		}
-	})
+	return flow.NewLowSeriesIDs(lowContainer), memTimeSeriesIDs
 }
 
 // FlushMetricsDataTo flushes metric data.

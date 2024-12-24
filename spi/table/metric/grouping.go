@@ -1,11 +1,12 @@
 package metric
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/lindb/roaring"
 
+	"github.com/lindb/lindb/flow"
+	"github.com/lindb/lindb/pkg/collections"
 	"github.com/lindb/lindb/series/tag"
 	"github.com/lindb/lindb/tsdb"
 )
@@ -13,6 +14,48 @@ import (
 const (
 	tagValueNotFound = "tag_value_not_found"
 )
+
+type GroupingKey []uint32
+
+func (key GroupingKey) Clone() *GroupingKey {
+	newKey := make(GroupingKey, len(key))
+	copy(newKey, key)
+	return &newKey
+}
+
+type TagsScanner struct {
+	scanners    []*flow.TagScanner
+	tagValueIDs []*roaring.Bitmap
+	key         GroupingKey
+}
+
+func NewTagsScanner(scanners []*flow.TagScanner) *TagsScanner {
+	return &TagsScanner{
+		scanners:    scanners,
+		key:         make(GroupingKey, len(scanners)),
+		tagValueIDs: make([]*roaring.Bitmap, len(scanners)),
+	}
+}
+
+func (s *TagsScanner) FindTagValues(lowSeriesID uint16) *GroupingKey {
+	for idx, scanner := range s.scanners {
+		tagValueID, ok := scanner.FindTagValue(lowSeriesID)
+		if s.tagValueIDs[idx] == nil {
+			s.tagValueIDs[idx] = roaring.New()
+		}
+		s.tagValueIDs[idx].Add(tagValueID)
+		if ok {
+			s.key[idx] = tagValueID
+		} else {
+			s.key[idx] = tag.EmptyTagValueID
+		}
+	}
+	return &s.key
+}
+
+func (s *TagsScanner) GetTagValueIDs() []*roaring.Bitmap {
+	return s.tagValueIDs
+}
 
 type Grouping struct {
 	db   tsdb.Database
@@ -65,21 +108,80 @@ func (g *Grouping) CollectTagValues() {
 	}
 }
 
-func (g *Grouping) GetTagValues(tagValueIDs string) []string {
+func (g *Grouping) GetTagValues(tagValueIDs GroupingKey) []string {
+	// TODO: cache grouping tag values
 	// if tagValues, ok := ctx.tagsMap[tagValueIDs]; ok {
 	// 	return tagValues
 	// }
+
+	fmt.Printf("get value values==%v\n", tagValueIDs)
 	tagValues := make([]string, g.tags.Len())
-	tagsData := []byte(tagValueIDs)
 	for idx := range g.tagValuesMap {
 		tagValuesForKey := g.tagValuesMap[idx]
-		offset := idx * 4
-		tagValueID := binary.LittleEndian.Uint32(tagsData[offset:])
+		tagValueID := tagValueIDs[idx]
 		if tagValue, ok := tagValuesForKey[tagValueID]; ok {
 			tagValues[idx] = tagValue
 		} else {
+			fmt.Printf("tag value not found...%v\n", tagValueID)
 			tagValues[idx] = tagValueNotFound
 		}
 	}
 	return tagValues
+}
+
+type grouping interface {
+	GetAggregator(lowSeriesID uint16) []*collections.FloatArray
+	ForEach(fn func(tags *GroupingKey, rs []*collections.FloatArray))
+}
+
+type groupingWithTags struct {
+	aggregators map[*GroupingKey][]*collections.FloatArray
+	tagsScanner *TagsScanner
+	tableScan   *TableScan
+}
+
+func newGroupingWithTags(tagsScanner *TagsScanner, tableScan *TableScan) grouping {
+	return &groupingWithTags{
+		tagsScanner: tagsScanner,
+		tableScan:   tableScan,
+		aggregators: make(map[*GroupingKey][]*collections.FloatArray),
+	}
+}
+
+func (g *groupingWithTags) ForEach(fn func(tags *GroupingKey, rs []*collections.FloatArray)) {
+	for tags, aggregator := range g.aggregators {
+		fn(tags, aggregator)
+	}
+}
+
+func (g *groupingWithTags) GetAggregator(lowSeriesID uint16) []*collections.FloatArray {
+	key := g.tagsScanner.FindTagValues(lowSeriesID)
+	var (
+		rs []*collections.FloatArray
+		ok bool
+	)
+	rs, ok = g.aggregators[key]
+	if !ok {
+		rs = make([]*collections.FloatArray, g.tableScan.numOfAggs)
+		g.aggregators[(*key).Clone()] = rs
+	}
+	return rs
+}
+
+type groupingWithoutTags struct {
+	aggregator []*collections.FloatArray // family time => streams of fields
+}
+
+func newGroupingWithoutTags(tableScan *TableScan) grouping {
+	return &groupingWithoutTags{
+		aggregator: make([]*collections.FloatArray, tableScan.numOfAggs),
+	}
+}
+
+func (g *groupingWithoutTags) ForEach(fn func(tags *GroupingKey, rs []*collections.FloatArray)) {
+	fn(nil, g.aggregator)
+}
+
+func (g *groupingWithoutTags) GetAggregator(_ uint16) []*collections.FloatArray {
+	return g.aggregator
 }

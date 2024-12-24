@@ -18,6 +18,7 @@
 package aggregation
 
 import (
+	"fmt"
 	"math"
 	"sort"
 
@@ -80,7 +81,7 @@ func (a *fieldAggregator) ResultSet() (startTime int64, it series.FieldIterator)
 // Aggregate aggregates the field series into current aggregator
 func (a *fieldAggregator) Aggregate(it series.FieldIterator) {
 	for it.HasNext() {
-		// fmt.Println("agg next....")
+		fmt.Println("agg next....")
 		pIt := it.Next()
 		for pIt.HasNext() {
 			slot, value := pIt.Next()
@@ -134,7 +135,7 @@ func uniqueAggTypes(types []field.AggType) []field.AggType {
 		return types[i] < types[j]
 	})
 
-	var index = 0
+	index := 0
 	for i := 1; i < len(types); i++ {
 		if types[i] != types[index] {
 			index++

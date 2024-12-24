@@ -77,8 +77,11 @@ linters-settings:
     local-prefixes: github.com/lindb/lindb
 
   govet:
-    shadow: true
+    enable:
+      - fieldalignment
     settings:
+      shadow: 
+        strict: true
       printf:
         funcs:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof

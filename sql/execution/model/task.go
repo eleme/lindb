@@ -30,4 +30,5 @@ type TaskResultSet struct {
 	TaskID TaskID          `json:"taskId"`
 	NodeID plan.PlanNodeID `json:"nodeId"`
 	NoMore bool            `json:"noMore"`
+	Error  string          `json:"error,omitempty"`
 }

@@ -45,7 +45,9 @@ func (msp *SplitSourceProvider) getSchema(db tsdb.Database, table *TableHandle) 
 	return metricID, schema, nil
 }
 
-func (msp *SplitSourceProvider) buildTableScan(ctx context.Context, table spi.TableHandle, outputColumns []types.ColumnMetadata) *TableScan {
+func (msp *SplitSourceProvider) buildTableScan(ctx context.Context, table spi.TableHandle,
+	outputColumns []types.ColumnMetadata, assignments []*spi.ColumnAssignment,
+) *TableScan {
 	metricTable, ok := table.(*TableHandle)
 	if !ok {
 		panic(fmt.Sprintf("metric provider not support table handle<%T>", table))
@@ -64,18 +66,43 @@ func (msp *SplitSourceProvider) buildTableScan(ctx context.Context, table spi.Ta
 		// if isn't not found error, throw it
 		panic(err)
 	}
+
 	// mapping fields for searching
 	var fields field.Metas
-	lo.ForEach(outputColumns, func(column types.ColumnMetadata, index int) {
+	var columns []*column
+	index := uint8(0)
+	columnIndex := 0
+	lo.ForEach(outputColumns, func(columnMeta types.ColumnMetadata, _ int) {
 		if fieldMeta, ok := lo.Find(schema.Fields, func(fieldMeta field.Meta) bool {
-			return column.Name == fieldMeta.Name.String() && column.DataType != types.DTString
+			return columnMeta.Name == fieldMeta.Name.String() && columnMeta.DataType != types.DTString
 		}); ok {
+			fieldMeta.Index = index
 			fields = append(fields, fieldMeta)
+			index++
+
+			column := &column{meta: fieldMeta, offset: columnIndex}
+			columns = append(columns, column)
+
+			// find column handles for field
+			columnHandles := lo.Filter(assignments, func(item *spi.ColumnAssignment, index int) bool {
+				return item.Column == fieldMeta.Name.String()
+			})
+			// not input aggregation func for this field
+			if len(columnHandles) == 0 {
+				// if column handle not found, set default aggregation using field aggregation type
+				column.handles = []*ColumnHandle{{Downsampling: tree.Max, Aggregation: tree.Max}}
+			}
+			for _, columnHandle := range columnHandles {
+				if handle, ok := columnHandle.Handler.(*ColumnHandle); ok {
+					column.handles = append(column.handles, handle)
+					columnIndex++
+				}
+			}
 		}
 	})
 	// mpaaing tags for grouping
 	var groupingTags tag.Metas
-	lo.ForEach(outputColumns, func(column types.ColumnMetadata, index int) {
+	lo.ForEach(outputColumns, func(column types.ColumnMetadata, _ int) {
 		if tagKey, ok := lo.Find(schema.TagKeys, func(tagMeta tag.Meta) bool {
 			return column.Name == tagMeta.Key && column.DataType == types.DTString
 		}); ok {
@@ -94,6 +121,16 @@ func (msp *SplitSourceProvider) buildTableScan(ctx context.Context, table spi.Ta
 	if len(groupingTags) > 0 {
 		grouping = NewGrouping(db, groupingTags)
 	}
+	maxOfRollups := 0
+	numOfAggs := 0
+	for _, column := range columns {
+		// init column rollup and aggregation context
+		column.init()
+		if maxOfRollups < len(column.rollups) {
+			maxOfRollups = len(column.rollups)
+		}
+		numOfAggs += len(column.aggs)
+	}
 
 	return &TableScan{
 		ctx:             ctx,
@@ -104,8 +141,11 @@ func (msp *SplitSourceProvider) buildTableScan(ctx context.Context, table spi.Ta
 		interval:        metricTable.Interval,
 		storageInterval: metricTable.StorageInterval,
 		fields:          fields,
+		columns:         columns,
+		maxOfRollups:    maxOfRollups,
+		numOfAggs:       numOfAggs,
 		grouping:        grouping,
-		output:          outputColumns,
+		outputs:         outputColumns,
 	}
 }
 
@@ -115,11 +155,11 @@ func (msp *SplitSourceProvider) findPartitions(tableScan *TableScan, partitionID
 		if ok {
 			// TODO: use storage interval?
 			// check time range is empty if select metric meta
-			dataFamilies := shard.GetDataFamilies(tableScan.storageInterval.Type(), tableScan.timeRange)
-			if len(dataFamilies) > 0 {
+			families := shard.GetDataFamilies(tableScan.storageInterval.Type(), tableScan.timeRange)
+			if len(families) > 0 {
 				partitions = append(partitions, &Partition{
 					shard:    shard,
-					families: dataFamilies,
+					families: families,
 				})
 			}
 		}
@@ -128,12 +168,13 @@ func (msp *SplitSourceProvider) findPartitions(tableScan *TableScan, partitionID
 }
 
 // 1. find database/table(metric) schema
-// 2. find columns(tags)' values if has predicate
+// 2. find values of columns(tags) if has predicate
 // 3. find partitions
 func (msp *SplitSourceProvider) CreateSplitSources(ctx context.Context, table spi.TableHandle, partitionIDs []int,
-	outputColumns []types.ColumnMetadata, predicate tree.Expression,
+	outputColumns []types.ColumnMetadata, assignments []*spi.ColumnAssignment,
+	predicate tree.Expression,
 ) (splits []spi.SplitSource) {
-	tableScan := msp.buildTableScan(ctx, table, outputColumns)
+	tableScan := msp.buildTableScan(ctx, table, outputColumns, assignments)
 	if tableScan == nil {
 		fmt.Println("table scan is nil")
 		return
@@ -179,7 +220,7 @@ func (mss *SplitSource) lookupSeriesIDs() *roaring.Bitmap {
 	var (
 		seriesIDs *roaring.Bitmap
 		err       error
-		ok        bool
+		// ok        bool
 	)
 	predicate := mss.tableScan.predicate
 
@@ -190,11 +231,12 @@ func (mss *SplitSource) lookupSeriesIDs() *roaring.Bitmap {
 			panic(err)
 		}
 	} else {
+		// TODO: remove
 		// find series ids based on where condition
-		lookup := NewRowLookupVisitor(mss)
-		if seriesIDs, ok = predicate.Accept(nil, lookup).(*roaring.Bitmap); !ok {
-			panic(constants.ErrSeriesIDNotFound)
-		}
+		// lookup := NewRowLookupVisitor(ps.tableScan)
+		// if seriesIDs, ok = predicate.Accept(nil, lookup).(*roaring.Bitmap); !ok {
+		// 	panic(constants.ErrSeriesIDNotFound)
+		// }
 	}
 
 	if seriesIDs == nil || seriesIDs.IsEmpty() {
@@ -208,6 +250,7 @@ func (mss *SplitSource) matchSeriesIDs() {
 	fmt.Printf("families=%v,fields=%v\n", mss.partition.families, mss.tableScan.fields)
 	fmt.Printf("after load series ids: %v\n", seriesIDs)
 	if mss.tableScan.fields.Len() == 0 && len(mss.partition.families) == 0 {
+		// TODO: no data family return empty series ids?
 		// find metadata from index db
 		mss.seriesIDs = seriesIDs
 		return
@@ -219,12 +262,11 @@ func (mss *SplitSource) matchSeriesIDs() {
 		family := mss.partition.families[i]
 		// check family data if matches condition(series ids)
 		resultSet, err := family.Filter(&flow.MetricScanContext{
-			MetricID:                mss.tableScan.metricID,
-			SeriesIDs:               seriesIDs,
-			SeriesIDsAfterFiltering: seriesIDs,
-			Fields:                  mss.tableScan.fields,
-			TimeRange:               mss.tableScan.timeRange,
-			StorageInterval:         mss.tableScan.storageInterval,
+			MetricID:  mss.tableScan.metricID,
+			SeriesIDs: seriesIDs,
+			Fields:    mss.tableScan.fields,
+			TimeRange: mss.tableScan.timeRange,
+			Interval:  family.Interval(),
 		})
 
 		if err != nil && !errors.Is(err, constants.ErrNotFound) {
@@ -254,7 +296,7 @@ func (mss *SplitSource) Prepare() {
 		panic(constants.ErrSeriesIDNotFound)
 	}
 
-	if mss.tableScan.hasGrouping() {
+	if mss.tableScan.isGrouping() {
 		// if it has grouping, do group by tag keys, else just split series ids as batch first.
 		seriesIDsAfterGrouping, groupingContext, err := mss.partition.shard.IndexDB().
 			GetGroupingContext(mss.tableScan.grouping.tags, mss.seriesIDs)
@@ -280,39 +322,37 @@ func (mss *SplitSource) Next() spi.Split {
 	if mss.index >= len(mss.highKeys) {
 		return nil
 	}
-	highSeriesID := mss.highKeys[mss.index]
-	lowSeriesIDsContainer := mss.seriesIDs.GetContainerAtIndex(mss.index)
+	seriesIDHighKey := mss.highKeys[mss.index]
+	lowSeriesIDs := mss.seriesIDs.GetContainerAtIndex(mss.index)
 	mss.index++
 	return &ScanSplit{
-		MinSeriesID:           lowSeriesIDsContainer.Minimum(),
-		MaxSeriesID:           lowSeriesIDsContainer.Maximum(),
-		HighSeriesID:          highSeriesID,
-		LowSeriesIDsContainer: lowSeriesIDsContainer,
-		tableScan:             mss.tableScan,
-		groupingContext:       mss.groupingContext,
-		ResultSet:             mss.resultSet,
+		seriesIDHighKey: seriesIDHighKey,
+		lowSeriesIDs:    lowSeriesIDs,
+		tableScan:       mss.tableScan,
+		groupingContext: mss.groupingContext,
+		resultSet:       mss.resultSet,
 	}
 }
 
 type RowsLookupVisitor struct {
-	split *SplitSource
+	partition *Partition
 }
 
-func NewRowLookupVisitor(split *SplitSource) *RowsLookupVisitor {
+func NewRowLookupVisitor(partition *Partition) *RowsLookupVisitor {
 	return &RowsLookupVisitor{
-		split: split,
+		partition: partition,
 	}
 }
 
 func (v *RowsLookupVisitor) Visit(context any, n tree.Node) any {
-	fmt.Printf("row lookup visitor: %v\n", v.split.tableScan.filterResult)
+	fmt.Printf("row lookup visitor: %v\n", v.partition.tableScan.filterResult)
 	var seriesIDs *roaring.Bitmap
 	var tagKey tag.KeyID
-	indexDB := v.split.partition.shard.IndexDB()
+	indexDB := v.partition.shard.IndexDB()
 
 	switch node := n.(type) {
 	case *tree.ComparisonExpression:
-		tagKey, seriesIDs = v.visitPredicate(context, node)
+		tagKey, seriesIDs = v.visitPredicate(node)
 		if node.Operator == tree.ComparisonNEQ {
 			// get all series ids for tag key
 			all, err := indexDB.GetSeriesIDsForTag(tagKey)
@@ -324,10 +364,10 @@ func (v *RowsLookupVisitor) Visit(context any, n tree.Node) any {
 			return all
 		}
 	case *tree.InPredicate, *tree.RegexPredicate, *tree.LikePredicate:
-		_, seriesIDs = v.visitPredicate(context, node)
+		_, seriesIDs = v.visitPredicate(node)
 	case *tree.NotExpression:
 		// get filter series ids
-		tagKey, seriesIDs = v.visitPredicate(context, node.Value)
+		tagKey, seriesIDs = v.visitPredicate(node.Value)
 		// TODO: cache if dup
 		// get all series ids for tag key
 		all, err := indexDB.GetSeriesIDsForTag(tagKey)
@@ -357,13 +397,13 @@ func (v *RowsLookupVisitor) Visit(context any, n tree.Node) any {
 	return seriesIDs
 }
 
-func (v *RowsLookupVisitor) visitPredicate(_ any, node tree.Node) (tag.KeyID, *roaring.Bitmap) {
-	columnResult, ok := v.split.tableScan.filterResult[node.GetID()]
+func (v *RowsLookupVisitor) visitPredicate(node tree.Node) (tag.KeyID, *roaring.Bitmap) {
+	columnResult, ok := v.partition.tableScan.filterResult[node.GetID()]
 	if !ok {
 		panic(constants.ErrSeriesIDNotFound)
 	}
 	fmt.Printf("tag value ids=%v\n", columnResult.TagValueIDs)
-	indexDB := v.split.partition.shard.IndexDB()
+	indexDB := v.partition.shard.IndexDB()
 	seriesIDs, err := indexDB.GetSeriesIDsByTagValueIDs(columnResult.TagKeyID, columnResult.TagValueIDs)
 	if err != nil {
 		panic(err)

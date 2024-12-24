@@ -5,17 +5,14 @@ import (
 
 	"go.uber.org/atomic"
 
-	"github.com/lindb/lindb/spi"
 	"github.com/lindb/lindb/sql/execution/pipeline"
 )
 
 type TaskExecutionPlanContext struct {
 	ctx             context.Context
 	driverFactories []*pipeline.DriverFactory
-	splitSources    []spi.SplitSource
 
 	nextPipelineID atomic.Int32
-	localStore     bool
 }
 
 func NewTaskExecutionPlanContext(ctx context.Context, driverFactories []*pipeline.DriverFactory) *TaskExecutionPlanContext {
@@ -29,18 +26,6 @@ func (ctx *TaskExecutionPlanContext) AddDriverFactory(physicalOperation *Physica
 	// FIXME: add lookup outer driver?
 	driverFct := pipeline.NewDriverFactory(ctx.ctx, ctx.nextPipelineID.Inc(), physicalOperation.operatorFactories)
 	ctx.driverFactories = append(ctx.driverFactories, driverFct)
-}
-
-func (ctx *TaskExecutionPlanContext) SetSplitSources(splitSources []spi.SplitSource) {
-	ctx.splitSources = splitSources
-}
-
-func (ctx *TaskExecutionPlanContext) SetLocalStore(local bool) {
-	ctx.localStore = local
-}
-
-func (ctx *TaskExecutionPlanContext) IsLocalStore() bool {
-	return ctx.localStore
 }
 
 type TaskExecutionPlan struct {

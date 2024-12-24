@@ -18,8 +18,12 @@
 package memdb
 
 import (
+	"fmt"
+
 	"github.com/lindb/lindb/flow"
+	"github.com/lindb/lindb/pkg/encoding"
 	"github.com/lindb/lindb/pkg/timeutil"
+	"github.com/lindb/lindb/series/field"
 )
 
 // timeSeriesLoader represents time series store loader.
@@ -29,26 +33,54 @@ type timeSeriesLoader struct {
 	fields          []*fieldEntry
 	slotRange       timeutil.SlotRange // slot range of metric memory store
 	seriesIDHighKey uint16
+
+	seriesIDs        *flow.LowSeriesIDs
+	memTimeSeriesIDs []uint32
+
+	decoder *encoding.TSDDecoder
 }
 
 // NewTimeSeriesLoader creates a time series store loader.
 func NewTimeSeriesLoader(
 	db *memoryDatabase,
 	timeSeriesIndex TimeSeriesIndex,
-	seriesIDHighKey uint16,
+	seriesIDs *flow.LowSeriesIDs,
+	memTimeSeriesIDs []uint32,
 	slotRange timeutil.SlotRange,
 	fields []*fieldEntry,
 ) flow.DataLoader {
 	return &timeSeriesLoader{
 		db:              db,
 		timeSeriesIndex: timeSeriesIndex,
-		seriesIDHighKey: seriesIDHighKey,
 		fields:          fields,
 		slotRange:       slotRange,
+
+		seriesIDs:        seriesIDs,
+		memTimeSeriesIDs: memTimeSeriesIDs,
+		decoder:          encoding.GetTSDDecoder(), // TODO: refact
 	}
 }
 
-// Load implements flow.DataLoader.
-func (tsl *timeSeriesLoader) Load(ctx *flow.DataLoadContext) {
-	tsl.timeSeriesIndex.Load(ctx, tsl.seriesIDHighKey, tsl.slotRange, tsl.fields)
+func (tsl *timeSeriesLoader) Load(seriesID uint16, fn func(field field.Meta, geter encoding.TSDValueGetter)) {
+	index, ok := tsl.seriesIDs.Find(seriesID)
+	// TODO: add lock
+	fmt.Printf("find series id=%d, ok=%v,series id=%d\n", index, ok, seriesID)
+	if ok {
+		memTimeSeriesID := tsl.memTimeSeriesIDs[index]
+		for _, fm := range tsl.fields {
+			// read field compress data
+			compress := fm.getCompressBuf(memTimeSeriesID)
+			size := len(compress)
+			if size > 0 {
+				tsl.decoder.Reset(compress)
+				fn(fm.field, tsl.decoder)
+			}
+			// read current field write buffer
+			buf, ok := fm.getPage(memTimeSeriesID)
+			if ok {
+				fm.Reset(buf)
+				fn(fm.field, fm)
+			}
+		}
+	}
 }

@@ -53,6 +53,8 @@ type QueryContext struct {
 	output  buffer.OutputBuffer
 	rsBuild *buffer.ResultSetBuild
 
+	err string
+
 	completed chan struct{}
 }
 
@@ -74,6 +76,14 @@ func (ctx *QueryContext) Wait() {
 	// FIXME: add timeout
 	<-ctx.completed
 	ctx.rsBuild.Complete()
+}
+
+func (ctx *QueryContext) SetError(err string) {
+	ctx.err = err
+}
+
+func (ctx *QueryContext) Error() string {
+	return ctx.err
 }
 
 func (ctx *QueryContext) ResultSet() *model.ResultSet {
@@ -117,6 +127,9 @@ func (exec *QueryExecution) Start() any {
 
 	// waiting query complete
 	exec.queryContext.Wait()
+	if exec.queryContext.Error() != "" {
+		panic(exec.queryContext.Error())
+	}
 	return exec.queryContext.ResultSet()
 }
 
@@ -151,6 +164,13 @@ func (exec *QueryExecution) execute(fragmentedPlan *plan.SubPlan, output buffer.
 		go func() {
 			// TODO: handle panic
 			if fragment.RemoteParentNodeID == nil {
+				defer func() {
+					if err := recover(); err != nil {
+						exec.queryContext.SetError(fmt.Sprintf("%v", err))
+					}
+					// TODO::
+					close(exec.queryContext.completed)
+				}()
 				// run under current node
 				taskFct := NewTaskExecutionFactory()
 				taskExec := taskFct.Create(&SQLTask{
@@ -159,8 +179,6 @@ func (exec *QueryExecution) execute(fragmentedPlan *plan.SubPlan, output buffer.
 					fragment:    rootFragment,
 				}, output)
 				taskExec.Execute()
-				// TODO::
-				close(exec.queryContext.completed)
 			} else {
 				fragment.Receivers = []models.InternalNode{*exec.deps.CurrentNode}
 				for node, shards := range fragment.Partitions {
