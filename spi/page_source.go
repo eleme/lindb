@@ -20,11 +20,25 @@ type SplitSource interface {
 }
 
 type SplitSourceProvider interface {
-	CreateSplitSources(ctx context.Context, table TableHandle, partitions []int, outputColumns []types.ColumnMetadata, predicate tree.Expression) (splits []SplitSource)
+	CreateSplitSources(ctx context.Context, table TableHandle, partitions []int,
+		outputColumns []types.ColumnMetadata, assignments []*ColumnAssignment,
+		predicate tree.Expression) (splits []SplitSource)
+}
+
+type PageSourceConnector interface {
+	GetPages() <-chan *types.Page
+}
+
+type PageSourceConnectorProvider interface {
+	CreatePageSourceConnector(ctx context.Context,
+		table TableHandle, partitions []int, // table info
+		predicate tree.Expression, // predicate
+		outputColumns []types.ColumnMetadata, assignments []*ColumnAssignment, // output
+	) PageSourceConnector
 }
 
 type PageSourceProvider interface {
-	CreatePageSource(ctx context.Context, table TableHandle, outputs []types.ColumnMetadata, assignments []*ColumnAssignment) PageSource
+	CreatePageSource(ctx context.Context) PageSource
 }
 
 type PageSourceManager struct{}

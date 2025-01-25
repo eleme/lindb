@@ -26,6 +26,7 @@ func NewResultSetService() protoCommandV1.ResultSetServiceServer {
 func (srv *ResultSetService) ResultSet(ctx context.Context, request *protoCommandV1.ResultSetRequest) (*protoCommandV1.ResultSetResponse, error) {
 	resultSet := &model.TaskResultSet{}
 	if err := encoding.JSONUnmarshal(request.Payload, resultSet); err != nil {
+		// TODO: send handle error?
 		return nil, err
 	}
 
@@ -37,7 +38,8 @@ func (srv *ResultSetService) ResultSet(ctx context.Context, request *protoComman
 	sourceOperator := pipeline.DriverManager.GetSourceOperator(resultSet.TaskID, resultSet.NodeID)
 	if sourceOperator != nil {
 		sourceOperator.AddSplit(&spi.BinarySplit{
-			Page: resultSet.Page,
+			Page:  resultSet.Page,
+			Error: resultSet.Error,
 		})
 
 		if resultSet.NoMore {

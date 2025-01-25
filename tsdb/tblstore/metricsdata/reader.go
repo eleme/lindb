@@ -55,22 +55,30 @@ type MetricReader interface {
 	// GetTimeRange returns the time range in this sst file
 	GetTimeRange() timeutil.SlotRange
 	// Load loads the data from sst file, then returns the file metric scanner.
-	Load(ctx *flow.DataLoadContext) flow.DataLoader
+	Load(SeriesIDHighKey uint16, lowSeriesIDs roaring.Container, fields field.Metas) flow.DataLoader
 	// readSeriesData reads series data from file by seriesEntryBlock
-	readSeriesData(ctx *flow.DataLoadContext, seriesIdx uint16, seriesEntryBlock []byte)
+	readSeriesData(seriesIdx uint16, seriesEntryBlock []byte,
+		fn func(field field.Meta, getter encoding.TSDValueGetter))
+}
+
+type fieldEntry struct {
+	index int
+	field field.Meta // field of query
 }
 
 // metricReader implements MetricReader interface that reads metric block
 type metricReader struct {
-	highKeyOffsets   *encoding.FixedOffsetDecoder
-	seriesIDs        *roaring.Bitmap
-	path             string
-	metricBlock      []byte
-	seriesBucket     []byte
-	fields           field.Metas
-	readFieldIndexes []int
-	crc32CheckSum    uint32
-	timeRange        timeutil.SlotRange
+	highKeyOffsets *encoding.FixedOffsetDecoder
+	seriesIDs      *roaring.Bitmap
+	path           string
+	metricBlock    []byte
+	seriesBucket   []byte
+	fields         field.Metas
+	fieldEntries   []fieldEntry
+	crc32CheckSum  uint32
+	timeRange      timeutil.SlotRange
+
+	decoder *encoding.TSDDecoder
 }
 
 // NewReader creates a metric block metricReader
@@ -82,6 +90,7 @@ func NewReader(path string, metricBlock []byte) (MetricReader, error) {
 	if err := r.initReader(); err != nil {
 		return nil, err
 	}
+	r.decoder = encoding.GetTSDDecoder() // TODO: refact
 	return r, nil
 }
 
@@ -111,30 +120,30 @@ func (r *metricReader) prepare(fields field.Metas) (found bool) {
 	for idx, fieldMeta := range r.fields {
 		fieldMap[fieldMeta.ID] = idx
 	}
-	r.readFieldIndexes = make([]int, len(fields))
-	for idx, f := range fields { // sort by field ids
+	for _, f := range fields { // sort by field ids
 		if fieldIdx, ok := fieldMap[f.ID]; ok {
-			r.readFieldIndexes[idx] = fieldIdx
+			r.fieldEntries = append(r.fieldEntries, fieldEntry{
+				index: fieldIdx,
+				field: f,
+			})
 			found = true
-		} else {
-			r.readFieldIndexes[idx] = fieldNotFound
 		}
 	}
 	return
 }
 
 // Load loads the data from sst file, then returns the file metric scanner.
-func (r *metricReader) Load(ctx *flow.DataLoadContext) flow.DataLoader {
+func (r *metricReader) Load(seriesIDHighKey uint16, lowSeriesIDs roaring.Container, fields field.Metas) flow.DataLoader {
 	// 1. get high container index by the high key of series ID
-	highContainerIdx := r.seriesIDs.GetContainerIndex(ctx.SeriesIDHighKey)
+	highContainerIdx := r.seriesIDs.GetContainerIndex(seriesIDHighKey)
 	if highContainerIdx < 0 {
 		// if high container index < 0(series IDs not exist) return it
 		return nil
 	}
 	// 2. get low container include all low keys by the high container index, delete op will clean empty low container
 	lowContainer := r.seriesIDs.GetContainerAtIndex(highContainerIdx)
-	foundSeriesIDs := lowContainer.And(ctx.LowSeriesIDsContainer)
-	// TODO use foundSeries
+	foundSeriesIDs := lowContainer.And(lowSeriesIDs)
+	// TODO: use foundSeries
 	if foundSeriesIDs.GetCardinality() == 0 {
 		return nil
 	}
@@ -152,28 +161,31 @@ func (r *metricReader) Load(ctx *flow.DataLoadContext) flow.DataLoader {
 		return nil
 	}
 
+	if !r.prepare(fields) {
+		// field not found
+		return nil
+	}
+
 	lowKeyOffsetsDecoder := encoding.NewFixedOffsetDecoder()
 	if _, err = lowKeyOffsetsDecoder.Unmarshal(level3Block[lowKeyOffsetsAt:]); err != nil {
 		return nil
 	}
 
-	if !r.prepare(ctx.Fields) {
-		// field not found
-		return nil
-	}
 	seriesEntriesBlock := level3Block[:lowKeyOffsetsAt]
 	// must use lowContainer from store, because get series index based on container
 	return newMetricLoader(r, seriesEntriesBlock, lowContainer, lowKeyOffsetsDecoder)
 }
 
 // readSeriesData reads series data from file by given position.
-func (r *metricReader) readSeriesData(ctx *flow.DataLoadContext, seriesIdx uint16, seriesEntryBlock []byte) {
-	decoder := ctx.Decoder
+func (r *metricReader) readSeriesData(seriesIdx uint16, seriesEntryBlock []byte,
+	fn func(field field.Meta, getter encoding.TSDValueGetter),
+) {
+	decoder := r.decoder
 	fieldCount := r.fields.Len()
 	if fieldCount == 1 {
 		decoder.ResetWithTimeRange(seriesEntryBlock, r.timeRange.Start, r.timeRange.End)
 		// metric has one field, just read the data
-		ctx.DownSampling(r.timeRange, seriesIdx, 0, decoder)
+		fn(r.fieldEntries[0].field, decoder)
 		return
 	}
 
@@ -188,17 +200,12 @@ func (r *metricReader) readSeriesData(ctx *flow.DataLoadContext, seriesIdx uint1
 	fieldOffsetsDecoder := encoding.GetFixedOffsetDecoder()
 	_, _ = fieldOffsetsDecoder.Unmarshal(seriesEntryBlock[fieldOffsetsAt:])
 
-	fmt.Printf("field index = %v\n", r.readFieldIndexes)
-	for queryIdx, readIdx := range r.readFieldIndexes {
-		if readIdx == fieldNotFound {
-			fmt.Println("not found11........")
-			continue
-		}
-		fieldBlock, err := fieldOffsetsDecoder.GetBlock(readIdx, seriesEntryBlock[:fieldOffsetsAt])
+	for _, fm := range r.fieldEntries {
+		fieldBlock, err := fieldOffsetsDecoder.GetBlock(fm.index, seriesEntryBlock[:fieldOffsetsAt])
 		if err == nil {
 			decoder.ResetWithTimeRange(fieldBlock, r.timeRange.Start, r.timeRange.End)
 			// read field data
-			ctx.DownSampling(r.timeRange, seriesIdx, queryIdx, decoder)
+			fn(fm.field, decoder)
 		}
 	}
 	encoding.ReleaseFixedOffsetDecoder(fieldOffsetsDecoder)

@@ -31,6 +31,8 @@ type KeyID uint32
 // EmptyTagKeyID represents empty value for tag key id.
 const EmptyTagKeyID = KeyID(0)
 
+const EmptyTagValueID = uint32(0)
+
 // Metas implements sort.Interface, it's sorted by name
 type Metas []Meta
 

@@ -19,6 +19,8 @@ type SourceOperatorFactory interface {
 type Operator interface {
 	GetOutput() *types.Page
 
+	GetOutbound() <-chan *types.Page
+
 	AddInput(page *types.Page)
 	// Finish notifies the operator that no more pages will be added
 	// and the operator should finish processing and flush results.

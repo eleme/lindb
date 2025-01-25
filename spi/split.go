@@ -5,5 +5,6 @@ import "github.com/lindb/lindb/spi/types"
 type Split interface{}
 
 type BinarySplit struct {
-	Page *types.Page
+	Page  *types.Page
+	Error string
 }

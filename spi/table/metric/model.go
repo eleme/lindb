@@ -34,7 +34,7 @@ func init() {
 
 	spi.RegisterApplyAggregationFn(spi.Metric, func(table spi.TableHandle, tableMeta *types.TableMetadata, aggregations []spi.ColumnAggregation) *spi.ApplyAggregationResult {
 		result := &spi.ApplyAggregationResult{}
-		// TODO: find downSampling agg
+		// FIXME: find downSampling agg
 		for _, agg := range aggregations {
 			result.ColumnAssignments = append(result.ColumnAssignments,
 				&spi.ColumnAssignment{Column: agg.Column, Handler: &ColumnHandle{Downsampling: tree.Max, Aggregation: agg.AggFuncName}},
@@ -75,19 +75,50 @@ type ColumnHandle struct {
 	Aggregation  tree.FuncName `json:"aggregation"`
 }
 
-// scan by low series ids
 type ScanSplit struct {
-	LowSeriesIDsContainer roaring.Container
-	tableScan             *TableScan
-	groupingContext       flow.GroupingContext
-	ResultSet             []flow.FilterResultSet
+	tableScan       *TableScan
+	groupingContext flow.GroupingContext
+	resultSet       []flow.FilterResultSet // FIXME: need close result set after task finish
 
-	MinSeriesID  uint16
-	MaxSeriesID  uint16
-	HighSeriesID uint16
+	lowSeriesIDs    roaring.Container
+	seriesIDHighKey uint16
+}
+
+type DataSplit struct {
+	partition       *Partition
+	groupingContext flow.GroupingContext
+	groupingAgg     grouping
+
+	seriesIDHighKey uint16
+	lowSeriesIDs    roaring.Container
 }
 
 type Partition struct {
-	shard    tsdb.Shard
-	families []tsdb.DataFamily
+	tableScan *TableScan
+	shard     tsdb.Shard
+	families  []tsdb.DataFamily
+
+	resultSet []flow.FilterResultSet
+}
+
+type TimeSeries struct {
+	timestamps []int64
+	values     []float64
+}
+
+func newTimeSeries(capacity int) *TimeSeries {
+	return &TimeSeries{
+		timestamps: make([]int64, 0, capacity),
+		values:     make([]float64, 0, capacity),
+	}
+}
+
+func (ts *TimeSeries) Append(timestamp int64, value float64) {
+	ts.timestamps = append(ts.timestamps, timestamp)
+	ts.values = append(ts.values, value)
+}
+
+func (ts *TimeSeries) Reset() {
+	ts.timestamps = ts.timestamps[:0]
+	ts.values = ts.values[:0]
 }

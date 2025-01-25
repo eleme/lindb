@@ -17,3 +17,6 @@ func NewQueryOutputBuffer(rsBuild *ResultSetBuild) OutputBuffer {
 func (buf *QueryOutputBuffer) AddPage(page *types.Page) {
 	buf.rsBuild.AddPage(page)
 }
+
+func (buf *QueryOutputBuffer) SetError(err error) {
+}

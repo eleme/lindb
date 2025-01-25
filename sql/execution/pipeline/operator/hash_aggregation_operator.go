@@ -40,6 +40,10 @@ func (h *HashAggregationOperator) GetOutput() *types.Page {
 	return h.page
 }
 
+func (h *HashAggregationOperator) GetOutbound() <-chan *types.Page {
+	return nil
+}
+
 // IsFinished implements Operator.
 func (h *HashAggregationOperator) IsFinished() bool {
 	return true

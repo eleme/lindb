@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/jedib0t/go-pretty/v6/text"
 	commonmodels "github.com/lindb/common/models"
 	"github.com/lindb/common/pkg/timeutil"
 	"github.com/mattn/go-runewidth"
@@ -69,11 +68,12 @@ func (rs *ResultSet) ToTable() (tableStr string) {
 				cols := make(table.Row, len(rs.Schema.Columns)+1) // add timestamp column
 				colIdx := 0
 				for i, col := range row {
-					if rs.Schema.Columns[colIdx].DataType == types.DTTimeSeries {
+					if rs.Schema.Columns[i].DataType == types.DTTimeSeries {
 						timeSeries := &types.TimeSeries{}
-						_ = mapstructure.Decode(row[colIdx], timeSeries)
+						_ = mapstructure.Decode(col, timeSeries)
 						if timeSeriesIdx == i {
-							cols[colIdx] = timeSeries.TimeRange.Start + timeSeries.Interval*int64(pos)
+							cols[colIdx] = timeutil.FormatTimestamp(timeSeries.TimeRange.Start+timeSeries.Interval*int64(pos),
+								timeutil.DataTimeFormat2)
 							maxWidths[colIdx] = stringWidth(maxWidths[colIdx], cols[colIdx])
 							colIdx++
 							cols[colIdx] = timeSeries.Values[pos]
@@ -169,7 +169,7 @@ func columnStyles(maxWidths []int) []table.ColumnConfig {
 	//  set the maximum width of the column
 	columnConfigs := make([]table.ColumnConfig, numCols)
 	for i := range columnConfigs {
-		columnConfigs[i] = table.ColumnConfig{Number: i + 1, WidthMax: colWidths[i], WidthMaxEnforcer: text.WrapText}
+		columnConfigs[i] = table.ColumnConfig{}
 	}
 	return columnConfigs
 }

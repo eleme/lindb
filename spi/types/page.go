@@ -1,5 +1,7 @@
 package types
 
+import "github.com/samber/lo"
+
 var (
 	RowWithEmptyValue = NewRowWithEmptyValue()
 	EmptyRow          = Row{}
@@ -44,7 +46,9 @@ func (p *Page) NumRows() int {
 		return 0
 	}
 	// TODO: select rows/no column
-	return p.Columns[0].NumOfRows
+	return lo.MaxBy(p.Columns, func(a, b *Column) bool {
+		return a.NumOfRows > b.NumOfRows
+	}).NumOfRows
 }
 
 func (p *Page) Iterator() *Iterator4Page {

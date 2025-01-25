@@ -23,6 +23,16 @@ func NewTimeSeries(timeRange timeutil.TimeRange, interval timeutil.Interval) *Ti
 	}
 }
 
+// NewTimeSeriesWithValues creates a time series with given time range, interval and values.
+func NewTimeSeriesWithValues(timeRange timeutil.TimeRange, interval timeutil.Interval, values []float64) *TimeSeries {
+	return &TimeSeries{
+		TimeRange:   timeRange,
+		Interval:    interval.Int64(),
+		NumOfPoints: len(values),
+		Values:      values,
+	}
+}
+
 // NewTimeSeriesWithSingleValue creates a time series with single value.
 func NewTimeSeriesWithSingleValue(value float64) *TimeSeries {
 	return &TimeSeries{

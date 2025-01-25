@@ -24,40 +24,43 @@ import (
 
 	"github.com/lindb/lindb/flow"
 	"github.com/lindb/lindb/pkg/encoding"
+	"github.com/lindb/lindb/series/field"
 )
 
 // metricLoader implements flow.DataLoader interface that loads metric data from file storage.
 type metricLoader struct {
 	reader             MetricReader
-	lowContainer       roaring.Container
 	lowKeyOffsets      *encoding.FixedOffsetDecoder
 	seriesEntriesBlock []byte
+
+	seriesIDs *flow.LowSeriesIDs
 }
 
 // newMetricLoader creates a file storage metric loader.
 func newMetricLoader(
 	reader MetricReader,
 	seriesEntriesBlock []byte,
-	lowContainer roaring.Container,
+	lowSeriesIDs roaring.Container,
 	lowKeyOffsets *encoding.FixedOffsetDecoder,
 ) flow.DataLoader {
 	return &metricLoader{
 		seriesEntriesBlock: seriesEntriesBlock,
 		reader:             reader,
-		lowContainer:       lowContainer,
+		seriesIDs:          flow.NewLowSeriesIDs(lowSeriesIDs),
 		lowKeyOffsets:      lowKeyOffsets,
 	}
 }
 
 // Load loads the metric data by given series id from file storage.
-func (s *metricLoader) Load(loadCtx *flow.DataLoadContext) {
-	loadCtx.IterateLowSeriesIDs(s.lowContainer, func(seriesIdxFromQuery uint16, seriesIdxFromStorage int) {
-		seriesEntry, err := s.lowKeyOffsets.GetBlock(seriesIdxFromStorage, s.seriesEntriesBlock)
+func (s *metricLoader) Load(seriesID uint16, fn func(field field.Meta, getter encoding.TSDValueGetter)) {
+	index, ok := s.seriesIDs.Find(seriesID)
+	if ok {
+		seriesEntry, err := s.lowKeyOffsets.GetBlock(index, s.seriesEntriesBlock)
 		if err != nil {
 			fmt.Printf("data loader err=%v\n", err)
 			return
 		}
 		// read series data of fields
-		s.reader.readSeriesData(loadCtx, seriesIdxFromQuery, seriesEntry)
-	})
+		s.reader.readSeriesData(seriesID, seriesEntry, fn)
+	}
 }

@@ -18,6 +18,7 @@
 package memdb
 
 import (
+	"fmt"
 	"io"
 	"math"
 	"sync"
@@ -431,24 +432,29 @@ func (md *memoryDatabase) Filter(metricScanCtx *flow.MetricScanContext) (rs []fl
 	memMetricID, ok := md.indexDB.GetMetadataDatabase().GetMemMetricID(uint32(metricScanCtx.MetricID))
 	if !ok {
 		// metric not found
+		fmt.Println("metric not found")
 		return
 	}
 	timeSeriesIndex, ok := md.indexDB.GetTimeSeriesIndex(memMetricID)
 	if !ok {
 		// time series not found
+		fmt.Println("series not found")
 		return
 	}
 	storageSlotRange, ok := timeSeriesIndex.GetTimeRange(md.createdTime)
 	if !ok {
 		// no data(time range not exist)
+		fmt.Println("time range not exist")
 		return
 	}
 	querySlotRange := metricScanCtx.CalcSourceSlotRange(md.familyTime)
 	if !storageSlotRange.Overlap(querySlotRange) {
 		// time range not match
+		fmt.Println("time range not match")
 		return
 	}
-	return md.filter(metricScanCtx, memMetricID, storageSlotRange, timeSeriesIndex)
+	slotRange := storageSlotRange.Intersect(querySlotRange)
+	return md.filter(metricScanCtx, memMetricID, slotRange, timeSeriesIndex)
 }
 
 // MemSize returns the time series database memory size.

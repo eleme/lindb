@@ -53,17 +53,7 @@ func (p *TaskExecutionPlanner) Plan(taskCtx *context.TaskContext, node planpkg.P
 	// add output operator
 	taskExecPlanCtx.AddDriverFactory(NewPhysicalOperation(outputOperatorFct, node.GetOutputSymbols(), physicalOperator))
 
-	var pipelines []*pipeline.Pipeline
-	for i := range taskExecPlanCtx.driverFactories {
-		var splitSource spi.SplitSource
-		if taskExecPlanCtx.IsLocalStore() {
-			// local data source
-			// TODO: need check split source if nil
-			splitSource = taskExecPlanCtx.splitSources[i]
-		}
-
-		pipelines = append(pipelines, pipeline.NewPipeline(taskCtx, splitSource, taskExecPlanCtx.driverFactories[0]))
-	}
+	pipelines := []*pipeline.Pipeline{pipeline.NewPipeline(taskCtx, taskExecPlanCtx.driverFactories[0])}
 
 	return NewTaskExecutionPlan(pipelines)
 }
@@ -159,7 +149,7 @@ func (v *TaskExecutionPlanVisitor) VisitTableScan(context any, node *planpkg.Tab
 	return NewPhysicalOperation(operatorFct, node.GetOutputSymbols(), nil)
 }
 
-func (v *TaskExecutionPlanVisitor) visitRemoteSource(context any, node *planpkg.RemoteSourceNode) (r any) {
+func (v *TaskExecutionPlanVisitor) visitRemoteSource(_ any, node *planpkg.RemoteSourceNode) (r any) {
 	operatorFct := exchange.NewExchangeOperatorFactory(node.GetNodeID(), len(node.SourceFragmentIDs))
 	return NewPhysicalOperation(operatorFct, node.GetOutputSymbols(), nil)
 }
@@ -186,7 +176,9 @@ func (v *TaskExecutionPlanVisitor) visitScanFilterAndProjection(context any, pro
 	return NewPhysicalOperation(projectOpFct, project.GetOutputSymbols(), source)
 }
 
-func (v *TaskExecutionPlanVisitor) visitTableScan(context any, node *planpkg.TableScanNode, filter tree.Expression) operator.OperatorFactory {
+func (v *TaskExecutionPlanVisitor) visitTableScan(context any,
+	node *planpkg.TableScanNode, predicate tree.Expression,
+) operator.OperatorFactory {
 	outputs := node.GetOutputSymbols()
 	outputColumns := lo.Map(outputs, func(item *planpkg.Symbol, index int) types.ColumnMetadata {
 		return types.ColumnMetadata{
@@ -194,11 +186,9 @@ func (v *TaskExecutionPlanVisitor) visitTableScan(context any, node *planpkg.Tab
 			DataType: item.DataType,
 		}
 	})
-	splitSources := spi.GetSplitSourceProvider(node.Table).CreateSplitSources(v.taskExecCtx.Context, node.Table, v.taskExecCtx.Partitions, outputColumns, filter)
-	// TODO: check source split
-	planContext := context.(*TaskExecutionPlanContext)
-	planContext.SetSplitSources(splitSources)
-	planContext.SetLocalStore(true)
+	provider := spi.GetPageSourceConnectorProvider(node.Table)
+	connector := provider.CreatePageSourceConnector(v.taskExecCtx.Context,
+		node.Table, v.taskExecCtx.Partitions, predicate, outputColumns, node.Assignments)
 
-	return scan.NewTableScanOperatorFactory(node.GetNodeID(), node.Table, outputColumns, node.Assignments, filter)
+	return scan.NewTableScanOperatorFactory(node.GetNodeID(), connector)
 }

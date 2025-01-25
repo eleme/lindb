@@ -50,6 +50,10 @@ func (op *ValuesOperator) GetSourceID() plan.PlanNodeID {
 	return op.sourceID
 }
 
+func (op *ValuesOperator) GetOutbound() <-chan *types.Page {
+	return nil
+}
+
 // NoMoreSplits implements SourceOperator.
 func (op *ValuesOperator) NoMoreSplits() {}
 

@@ -19,9 +19,11 @@ const (
 	Mod   FuncName = "mod"
 
 	// aggregation function names
-	Sum FuncName = "sum"
-	Min FuncName = "min"
-	Max FuncName = "max"
+	Sum   FuncName = "sum"
+	Min   FuncName = "min"
+	Max   FuncName = "max"
+	First FuncName = "first"
+	Last  FuncName = "last"
 
 	// time function names
 	DateAdd   FuncName = "date_add"

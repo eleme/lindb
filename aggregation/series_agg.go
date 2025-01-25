@@ -18,6 +18,7 @@
 package aggregation
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/lindb/lindb/pkg/timeutil"
@@ -164,6 +165,7 @@ func (a *seriesAggregator) Reset() {
 
 // GetAggregates returns all field aggregators.
 func (a *seriesAggregator) GetAggregates() []FieldAggregator {
+	fmt.Printf("get series agss=%v\n", a.aggregates)
 	return a.aggregates
 }
 

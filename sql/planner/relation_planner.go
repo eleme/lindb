@@ -155,6 +155,7 @@ func (p *RelationPlanner) visitTable(context any, node *tree.Table) (r any) {
 
 		root.OutputSymbols = outputSymbols
 		root.Partitions = tableMetadata.Partitions
+
 		plan = &RelationPlan{
 			Root:          root,
 			Scope:         scope,
@@ -166,7 +167,7 @@ func (p *RelationPlanner) visitTable(context any, node *tree.Table) (r any) {
 }
 
 func (p *RelationPlanner) planJoinUsing(node *tree.Join, left, right *RelationPlan) *RelationPlan {
-	return &RelationPlan{}
+	panic("need implement join using")
 }
 
 func (p *RelationPlanner) planJoin(node *tree.Join, scope *analyzer.Scope, left, right *RelationPlan) *RelationPlan {

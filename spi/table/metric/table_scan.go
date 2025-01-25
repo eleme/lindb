@@ -12,11 +12,42 @@ import (
 	"github.com/lindb/lindb/pkg/timeutil"
 	"github.com/lindb/lindb/series/field"
 	"github.com/lindb/lindb/series/metric"
+	"github.com/lindb/lindb/spi"
 	"github.com/lindb/lindb/spi/types"
 	"github.com/lindb/lindb/sql/expression"
 	"github.com/lindb/lindb/sql/tree"
 	"github.com/lindb/lindb/tsdb"
 )
+
+type column struct {
+	offset  int
+	meta    field.Meta
+	handles []*ColumnHandle
+
+	rollups []rollupConfig
+	aggs    []aggConfig
+}
+
+func (c *column) init() {
+	rollupMap := make(map[tree.FuncName]struct{})
+	index := 0
+	for _, handle := range c.handles {
+		c.aggs = append(c.aggs, aggConfig{target: index, aggType: getAggFunc(handle.Aggregation)})
+		if _, ok := rollupMap[handle.Downsampling]; !ok {
+			c.rollups = append(c.rollups, rollupConfig{aggType: getAggFunc(handle.Downsampling)})
+			index++
+		}
+	}
+}
+
+type rollupConfig struct {
+	aggType field.AggType
+}
+
+type aggConfig struct {
+	target  int // ref to rollup result set
+	aggType field.AggType
+}
 
 type TableScan struct {
 	ctx       context.Context
@@ -28,8 +59,12 @@ type TableScan struct {
 	// TODO: check if found all filter column values
 	filterResult map[tree.NodeID]*flow.TagFilterResult
 
-	fields field.Metas
-	output []types.ColumnMetadata
+	fields       field.Metas
+	columns      []*column
+	maxOfRollups int
+	numOfAggs    int
+	outputs      []types.ColumnMetadata
+	assignments  []*spi.ColumnAssignment
 
 	timeRange       timeutil.TimeRange
 	interval        timeutil.Interval
@@ -37,8 +72,16 @@ type TableScan struct {
 	metricID        metric.ID
 }
 
-func (t *TableScan) hasGrouping() bool {
+func (t *TableScan) isGrouping() bool {
 	return t.grouping != nil && t.grouping.tags.Len() > 0
+}
+
+func (t *TableScan) createRollups() (rs rollups) {
+	rs = make(rollups, t.maxOfRollups)
+	for index := range rs {
+		rs[index] = newRollup(t.timeRange.NumOfPoints(t.interval), t.interval.Int64())
+	}
+	return
 }
 
 func (t *TableScan) lookupColumnValues() {
@@ -56,7 +99,6 @@ type ColumnValuesLookupVisitor struct {
 }
 
 func NewColumnValuesLookVisitor(tableScan *TableScan) *ColumnValuesLookupVisitor {
-	// timestamp, _ := expression.EvalTime(evalCtx, translations.Rewrite(timePredicate.Value))
 	return &ColumnValuesLookupVisitor{
 		tableScan: tableScan,
 		evalCtx:   expression.NewEvalContext(tableScan.ctx),
@@ -124,11 +166,10 @@ func (v *ColumnValuesLookupVisitor) Visit(context any, n tree.Node) any {
 		panic(fmt.Sprintf("column values lookup error, not support node type: %T", n))
 	}
 	// visit predicate which finding tag value ids
-	return v.visitPredicate(context, n, column, fn)
+	return v.visitPredicate(n, column, fn)
 }
 
-func (v *ColumnValuesLookupVisitor) visitPredicate(context any,
-	predicate tree.Node, column tree.Expression,
+func (v *ColumnValuesLookupVisitor) visitPredicate(predicate tree.Node, column tree.Expression,
 	buildExpr func(columnName string) tree.Expr,
 ) (r any) {
 	columnName, _ := expression.EvalString(v.evalCtx, column)
@@ -147,10 +188,6 @@ func (v *ColumnValuesLookupVisitor) visitPredicate(context any,
 
 	if tagValueIDs == nil || tagValueIDs.IsEmpty() {
 		panic(fmt.Errorf("%w, column name: %s", constants.ErrColumnValueNotFound, columnName))
-	}
-
-	if v.tableScan.filterResult == nil {
-		v.tableScan.filterResult = make(map[tree.NodeID]*flow.TagFilterResult)
 	}
 
 	v.tableScan.filterResult[predicate.GetID()] = &flow.TagFilterResult{

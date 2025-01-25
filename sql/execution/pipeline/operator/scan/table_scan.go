@@ -9,47 +9,35 @@ import (
 	"github.com/lindb/lindb/spi/types"
 	"github.com/lindb/lindb/sql/execution/pipeline/operator"
 	"github.com/lindb/lindb/sql/planner/plan"
-	"github.com/lindb/lindb/sql/tree"
 )
 
 type TableScanOperatorFactory struct {
-	table  spi.TableHandle
-	filter tree.Expression
-
-	outputs     []types.ColumnMetadata
-	assignments []*spi.ColumnAssignment
+	conector spi.PageSourceConnector
 
 	sourceID plan.PlanNodeID
 }
 
-func NewTableScanOperatorFactory(sourceID plan.PlanNodeID,
-	table spi.TableHandle, outputs []types.ColumnMetadata, assignments []*spi.ColumnAssignment,
-	filter tree.Expression,
-) operator.OperatorFactory {
+func NewTableScanOperatorFactory(sourceID plan.PlanNodeID, connector spi.PageSourceConnector) operator.OperatorFactory {
 	return &TableScanOperatorFactory{
-		sourceID:    sourceID,
-		table:       table,
-		outputs:     outputs,
-		assignments: assignments,
-		filter:      filter,
+		sourceID: sourceID,
+		conector: connector,
 	}
 }
 
 func (fct *TableScanOperatorFactory) CreateOperator(ctx context.Context) operator.Operator {
-	provider := spi.GetPageSourceProvider(fct.table)
-	return NewTableScanOperator(fct.sourceID, provider.CreatePageSource(ctx, fct.table, fct.outputs, fct.assignments))
+	return NewTableScanOperator(fct.sourceID, fct.conector)
 }
 
 type TableScanOperator struct {
-	pageSource spi.PageSource
+	connector spi.PageSourceConnector
 
 	sourceID plan.PlanNodeID
 }
 
-func NewTableScanOperator(sourceID plan.PlanNodeID, pageSource spi.PageSource) operator.SourceOperator {
+func NewTableScanOperator(sourceID plan.PlanNodeID, connector spi.PageSourceConnector) operator.SourceOperator {
 	return &TableScanOperator{
-		sourceID:   sourceID,
-		pageSource: pageSource,
+		sourceID:  sourceID,
+		connector: connector,
 	}
 }
 
@@ -61,7 +49,7 @@ func (op *TableScanOperator) NoMoreSplits() {
 }
 
 func (op *TableScanOperator) AddSplit(split spi.Split) {
-	op.pageSource.AddSplit(split)
+	panic("remove it")
 }
 
 // AddInput implements operator.Operator
@@ -75,7 +63,12 @@ func (op *TableScanOperator) Finish() {
 
 // GetOutput implements operator.Operator
 func (op *TableScanOperator) GetOutput() *types.Page {
-	return op.pageSource.GetNextPage()
+	// return op.pageSource.GetNextPage()
+	return nil
+}
+
+func (op *TableScanOperator) GetOutbound() <-chan *types.Page {
+	return op.connector.GetPages()
 }
 
 // IsFinished implements operator.Operator
